@@ -22,7 +22,6 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
-          routeBasePath: '/',
           sidebarPath: require.resolve('./sidebars.js'),
           path: "../docs-builder/target/mdoc",
           editUrl: 'https://github.com/meltwater/fawn/edit/main/website/',
@@ -56,6 +55,12 @@ const config = {
             docId: 'intro',
             position: 'left',
             label: 'Introduction',
+          },
+          {
+            type: 'doc',
+            docId: 'SQS/making-a-client',
+            position: 'left',
+            label: 'SQS',
           },
           /*{to: '/blog', label: 'Blog', position: 'left'}, */
           {
