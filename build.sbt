@@ -1,6 +1,7 @@
 import xerial.sbt.Sonatype._
 
 name := "fawn"
+publishArtifact := false
 
 
 lazy val baseSettings = List(
@@ -13,6 +14,7 @@ lazy val baseSettings = List(
   organization           := "com.meltwater.fawn",
   testFrameworks += new TestFramework("munit.Framework"),
   addCompilerPlugin("org.typelevel" % "kind-projector" % "0.13.2" cross CrossVersion.full),
+  scalacOptions += "-Ymacro-annotations",
   useGpg                 := true,
   publishTo              := sonatypePublishTo.value,
   licenses               := Seq("MIT" -> url("https://opensource.org/licenses/MIT")),
@@ -38,6 +40,7 @@ lazy val commonDecline = project
   .dependsOn(common)
   .settings(baseSettings: _*)
   .settings(
+    name := "common-decline",
     libraryDependencies ++= List(
       "com.monovore" %% "decline" % "2.2.0"
     )
@@ -71,6 +74,7 @@ lazy val codecCirce = project
   .dependsOn(codec)
   .settings(baseSettings: _*)
   .settings(
+    name := "codec-codec",
     libraryDependencies ++= List(
       "io.circe" %% "circe-core"   % "0.14.1",
       "io.circe" %% "circe-parser" % "0.14.1"
@@ -87,7 +91,6 @@ lazy val sqs = project
       "org.typelevel"  %% "cats-tagless-macros" % "0.14.0",
       "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test
     ),
-    scalacOptions += "-Ymacro-annotations"
   )
 
 lazy val examples = project
