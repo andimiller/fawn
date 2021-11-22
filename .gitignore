@@ -1,0 +1,7 @@
+.idea
+.bsp
+.attach*
+target
+.metals
+.bloop
+project/project
