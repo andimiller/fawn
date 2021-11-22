@@ -22,6 +22,7 @@ const config = {
       /** @type {import('@docusaurus/preset-classic').Options} */
       ({
         docs: {
+          routeBasePath: '/',
           sidebarPath: require.resolve('./sidebars.js'),
           path: "../docs-builder/target/mdoc",
           editUrl: 'https://github.com/meltwater/fawn/edit/main/website/',
