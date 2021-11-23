@@ -24,7 +24,7 @@ const config = {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
           path: "../docs-builder/target/mdoc",
-          editUrl: 'https://github.com/meltwater/fawn/edit/main/website/',
+          editUrl: 'https://github.com/meltwater/fawn/edit/main/docs/',
           remarkPlugins: [[require('mdx-mermaid'), { mermaid: {
             theme: 'dark',
             themeVariables: {primaryColor: '#e5aa70'},
@@ -64,7 +64,7 @@ const config = {
           },
           /*{to: '/blog', label: 'Blog', position: 'left'}, */
           {
-            href: 'https://github.com/meltwater/docusaurus',
+            href: 'https://github.com/meltwater/fawn',
             label: 'GitHub',
             position: 'right',
           },
