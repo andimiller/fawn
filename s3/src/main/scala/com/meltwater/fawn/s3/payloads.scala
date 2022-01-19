@@ -48,8 +48,9 @@ object ListBucketResult {
   ).mapN(ListBucketResult.apply)
 }
 
-case class UploadFileResponse(eTag: String)
+case class UploadFileResponse(eTag: String, expiration: String)
 
+case class DownloadFileResponse[T](eTag: String, body: T)
 
 
 

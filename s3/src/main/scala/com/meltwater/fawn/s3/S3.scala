@@ -16,6 +16,7 @@ trait S3[F[_]] {
   def listBuckets(): F[ListAllMyBucketsResult]
   def listObjectsV2(bucket: String): F[ListBucketResult]
   def putObject[T](bucket: String, key: String, acl: AWSAccessControlList, storageClass: AWSStorageClass, t: T)(implicit enc: EntityEncoder[F, T]): F[UploadFileResponse]
+  def getObject[T](bucket: String, key: String)(implicit dec: EntityDecoder[F, T]): F[DownloadFileResponse[T]]
 }
 
 object S3 {
@@ -96,8 +97,29 @@ object S3 {
       ).use { resp => {
         {
           for {
-            header <- getHeader("ETag", resp.headers)
-          } yield UploadFileResponse(eTag = header.toString())
+            etag <- getHeader("ETag", resp.headers)
+            expiration <- getHeader("x-amz-expiration", resp.headers)
+          } yield UploadFileResponse(eTag = etag.toString(), expiration = expiration.toString())
+        }
+      }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
+    }
+
+    override def getObject[T](
+       bucket: String,
+       key: String)(implicit dec: EntityDecoder[F, T]): F[DownloadFileResponse[T]] =
+      client.run(
+        Request[F](
+          Method.GET,
+          Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .toOption
+            .get / key
+        )
+      ).use { resp => {
+        {
+          for {
+            etag <- getHeader("ETag", resp.headers)
+            body <- resp.as[T]
+          } yield DownloadFileResponse(eTag = etag.toString(), body)
         }
       }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
     }
