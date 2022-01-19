@@ -92,10 +92,22 @@ lazy val sqs = project
       "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test
     ),
   )
+  
+lazy val s3 = project
+  .in(file("s3"))
+  .dependsOn(auth, codec)
+  .settings(baseSettings: _*)
+  .settings(
+    libraryDependencies ++= List(
+      "com.lucidchart" %% "xtract"              % "2.3.0-alpha3",
+      "org.typelevel"  %% "cats-tagless-macros" % "0.14.0",
+      "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test
+    ),
+  )
 
 lazy val examples = project
   .in(file("examples"))
-  .dependsOn(sqs, codecCirce, commonDecline)
+  .dependsOn(sqs, codecCirce, commonDecline, s3)
   .settings(baseSettings: _*)
   .settings(
     libraryDependencies ++= List(
