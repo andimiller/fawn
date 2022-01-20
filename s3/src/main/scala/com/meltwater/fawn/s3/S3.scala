@@ -7,16 +7,22 @@ import com.meltwater.fawn.auth.V4Middleware
 import com.meltwater.fawn.common.{AWSCredentials, AWSRegion, AWSService}
 import org.http4s._
 import org.http4s.client.Client
-import org.http4s.scalaxml.xml
 import org.http4s.implicits._
+import org.http4s.scalaxml.xml
 
 import scala.util.control.NoStackTrace
 
 trait S3[F[_]] {
-  def listBuckets(): F[ListAllMyBucketsResult]
-  def listObjectsV2(bucket: String): F[ListBucketResult]
-  def putObject[T](bucket: String, key: String, acl: AWSAccessControlList, storageClass: AWSStorageClass, t: T)(implicit enc: EntityEncoder[F, T]): F[UploadFileResponse]
+  def listBuckets(): F[ListAllMyBucketsResponse]
+  def listObjectsV2(bucket: String): F[ListBucketResponse]
+  def putObject[T](bucket: String, key: String, t: T, optHeaders: Option[Headers] = None)(implicit enc: EntityEncoder[F, T]): F[UploadFileResponse]
   def getObject[T](bucket: String, key: String)(implicit dec: EntityDecoder[F, T]): F[DownloadFileResponse[T]]
+  def deleteObject(bucket: String, key: String): F[DeleteObjectResponse]
+  def getBucketAcl(bucket: String): F[GetBucketAclResponse]
+
+  //Multipart Uploads
+  def createMultipartUpload(bucket: String, key: String, headers: Option[Headers] = None): F[CreateMultipartUploadResponse]
+  def listMultipartUploads(bucket: String, optHeaders: Option[Headers] = None): F[ListMultipartUploadsResponse]
 }
 
 object S3 {
@@ -51,14 +57,14 @@ object S3 {
         S3Error(r.status, r.headers, b)
       }
 
-    override def listBuckets(): F[ListAllMyBucketsResult] = client.expectOr(
+    override def listBuckets(): F[ListAllMyBucketsResponse] = client.expectOr(
       Request[F](
         Method.GET,
         Uri.fromString(s"https://s3.$region.amazonaws.com").toOption.get
       )
     )(handleError)
 
-    override def listObjectsV2(bucket: String): F[ListBucketResult] = client.expectOr(
+    override def listObjectsV2(bucket: String): F[ListBucketResponse] = client.expectOr(
       Request[F](
         Method.GET,
         (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
@@ -71,35 +77,31 @@ object S3 {
       )
     )(handleError)
 
-    case class HeaderError(name: String) extends Throwable(s"Could not find header $name") with NoStackTrace {
+    case class HeaderError(name: String, headers: Headers) extends Throwable(s"Could not find header $name") with NoStackTrace {
       override def toString = s"HeaderError(name = $name)"
     }
 
-    private def getHeader(key: String, headers: Headers): F[Header] = Sync[F].fromEither(headers.get(key.ci).toRight(HeaderError(key)))
+    private def getHeader(key: String, headers: Headers): F[Header] = Sync[F].fromEither(headers.get(key.ci).toRight(HeaderError(key, headers)))
 
     override def putObject[T](
         bucket: String,
         key: String,
-        acl: AWSAccessControlList,
-        storageClass: AWSStorageClass,
-        t: T)(implicit enc: EntityEncoder[F, T]): F[UploadFileResponse] =
+        t: T,
+        optHeaders: Option[Headers] = None)(implicit enc: EntityEncoder[F, T]): F[UploadFileResponse] =
       client.run(
         Request[F](
           Method.PUT,
           (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
             .toOption
             .get / key),
-          headers = Headers(
-            Header("x-amz-acl",acl.value),
-            Header("x-amz-storage-class",storageClass.value)
-          )
+          headers = optHeaders.getOrElse(Headers())
         ).withEntity(t)
       ).use { resp => {
         {
           for {
+            requestId <- getHeader("x-amz-request-id", resp.headers)
             etag <- getHeader("ETag", resp.headers)
-            expiration <- getHeader("x-amz-expiration", resp.headers)
-          } yield UploadFileResponse(eTag = etag.toString(), expiration = expiration.toString())
+          } yield UploadFileResponse(requestId.value, etag.value, resp.headers.filter(_ != etag).filter(_ != requestId))
         }
       }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
     }
@@ -117,12 +119,65 @@ object S3 {
       ).use { resp => {
         {
           for {
+            requestId <- getHeader("x-amz-request-id", resp.headers)
             etag <- getHeader("ETag", resp.headers)
             body <- resp.as[T]
-          } yield DownloadFileResponse(eTag = etag.toString(), body)
+          } yield DownloadFileResponse(requestId.value, etag.value, resp.headers.filter(_ != etag).filter(_ != requestId) ,body)
         }
       }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
     }
+
+    override def deleteObject(bucket: String, key: String): F[DeleteObjectResponse] =
+      client.run(
+        Request[F](
+          Method.DELETE,
+          Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+           .toOption
+           .get / key
+        )
+      ).use { resp => {
+        {
+         for {
+           requestId <- getHeader("x-amz-request-id", resp.headers)
+         } yield DeleteObjectResponse(requestId.value)
+        }
+      }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
+    }
+
+    override def getBucketAcl(bucket: String): F[GetBucketAclResponse] =
+      client.expectOr(
+        Request[F](
+          Method.GET,
+          Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .toOption
+            .get
+            .withQueryParam("acl","")
+        )
+      )(handleError)
+
+    override def createMultipartUpload(bucket: String, key: String, optHeaders: Option[Headers]): F[CreateMultipartUploadResponse] =
+      client.expectOr(
+        Request[F](
+          Method.POST,
+          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .toOption
+            .get / key)
+            .withQueryParam("uploads",""),
+          headers = optHeaders.getOrElse(Headers())
+        )
+      )(handleError)
+
+    override def listMultipartUploads(bucket: String, optHeaders: Option[Headers]): F[ListMultipartUploadsResponse] =
+      client.expectOr(
+        Request[F](
+          Method.GET,
+          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .toOption
+            .get)
+            .withQueryParam("uploads","")
+        )
+      )(handleError)
+
   }
 
 }

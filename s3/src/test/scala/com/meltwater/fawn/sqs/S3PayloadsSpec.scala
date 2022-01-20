@@ -38,7 +38,7 @@ class S3PayloadsSpec extends FlatIOSpec{
         IO {
           r.map {
             elem =>
-              ListAllMyBucketsResult.xmlDecoder.read(elem)
+              ListAllMyBucketsResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
@@ -73,7 +73,119 @@ class S3PayloadsSpec extends FlatIOSpec{
         IO {
           r.map {
             elem =>
-              ListBucketResult.xmlDecoder.read(elem)
+              ListBucketResponse.xmlDecoder.read(elem)
+          }.isRight
+        }.assertEquals(true)
+      }
+  }
+
+  val getBucketAclExample =
+    """<?xml version="1.0" encoding="UTF-8"?>
+      |<AccessControlPolicy>
+      | <Owner>
+      |    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+      |    <DisplayName>CustomersName@amazon.com</DisplayName>
+      |  </Owner>
+      |  <AccessControlList>
+      |    <Grant>
+      |      <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      |			xsi:type="CanonicalUser">
+      |        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+      |        <DisplayName>CustomersName@amazon.com</DisplayName>
+      |      </Grantee>
+      |      <Permission>FULL_CONTROL</Permission>
+      |    </Grant>
+      |  </AccessControlList>
+      |</AccessControlPolicy>
+      |""".stripMargin
+
+  test("decode a get bucket acl response") {
+    EntityDecoder[IO, Elem]
+      .decode(
+        Response[IO]()
+          .withEntity(getBucketAclExample)
+          .withHeaders(Header("content-type", "text/xml")),
+        false
+      )
+      .value
+      .flatMap { r =>
+        IO {
+          r.map {
+            elem =>
+              GetBucketAclResponse.xmlDecoder.read(elem)
+          }.isRight
+        }.assertEquals(true)
+      }
+  }
+
+  val listMultipartUploadsResponseExample: String =
+    """<?xml version="1.0" encoding="UTF-8"?>
+      |<ListMultipartUploadsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+      |  <Bucket>bucket</Bucket>
+      |  <KeyMarker></KeyMarker>
+      |  <UploadIdMarker></UploadIdMarker>
+      |  <NextKeyMarker>my-movie.m2ts</NextKeyMarker>
+      |  <NextUploadIdMarker>YW55IGlkZWEgd2h5IGVsdmluZydzIHVwbG9hZCBmYWlsZWQ</NextUploadIdMarker>
+      |  <MaxUploads>3</MaxUploads>
+      |  <IsTruncated>true</IsTruncated>
+      |  <Upload>
+      |    <Key>my-divisor</Key>
+      |    <UploadId>XMgbGlrZSBlbHZpbmcncyBub3QgaGF2aW5nIG11Y2ggbHVjaw</UploadId>
+      |    <Initiator>
+      |      <ID>arn:aws:iam::111122223333:user/user1-11111a31-17b5-4fb7-9df5-b111111f13de</ID>
+      |      <DisplayName>user1-11111a31-17b5-4fb7-9df5-b111111f13de</DisplayName>
+      |    </Initiator>
+      |    <Owner>
+      |      <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+      |      <DisplayName>OwnerDisplayName</DisplayName>
+      |    </Owner>
+      |    <StorageClass>STANDARD</StorageClass>
+      |    <Initiated>2010-11-10T20:48:33.000Z</Initiated>
+      |  </Upload>
+      |  <Upload>
+      |    <Key>my-movie.m2ts</Key>
+      |    <UploadId>VXBsb2FkIElEIGZvciBlbHZpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA</UploadId>
+      |    <Initiator>
+      |      <ID>b1d16700c70b0b05597d7acd6a3f92be</ID>
+      |      <DisplayName>InitiatorDisplayName</DisplayName>
+      |    </Initiator>
+      |    <Owner>
+      |      <ID>b1d16700c70b0b05597d7acd6a3f92be</ID>
+      |      <DisplayName>OwnerDisplayName</DisplayName>
+      |    </Owner>
+      |    <StorageClass>STANDARD</StorageClass>
+      |    <Initiated>2010-11-10T20:48:33.000Z</Initiated>
+      |  </Upload>
+      |  <Upload>
+      |    <Key>my-movie.m2ts</Key>
+      |    <UploadId>YW55IGlkZWEgd2h5IGVsdmluZydzIHVwbG9hZCBmYWlsZWQ</UploadId>
+      |    <Initiator>
+      |      <ID>arn:aws:iam::444455556666:user/user1-22222a31-17b5-4fb7-9df5-b222222f13de</ID>
+      |      <DisplayName>user1-22222a31-17b5-4fb7-9df5-b222222f13de</DisplayName>
+      |    </Initiator>
+      |    <Owner>
+      |      <ID>b1d16700c70b0b05597d7acd6a3f92be</ID>
+      |      <DisplayName>OwnerDisplayName</DisplayName>
+      |    </Owner>
+      |    <StorageClass>STANDARD</StorageClass>
+      |    <Initiated>2010-11-10T20:49:33.000Z</Initiated>
+      |  </Upload>
+      |</ListMultipartUploadsResult>""".stripMargin
+
+  test("decode a list multipart upload response") {
+    EntityDecoder[IO, Elem]
+      .decode(
+        Response[IO]()
+          .withEntity(getBucketAclExample)
+          .withHeaders(Header("content-type", "text/xml")),
+        false
+      )
+      .value
+      .flatMap { r =>
+        IO {
+          r.map {
+            elem =>
+              ListMultipartUploadsResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }

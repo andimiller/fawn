@@ -2,13 +2,13 @@ package com.meltwater.fawn.s3
 
 case class AWSStorageClass(value: String)
 object AWSStorageClass {
-  val `standard`: AWSStorageClass            = AWSStorageClass("standard")
-  val `reduced-redundancy`: AWSStorageClass  = AWSStorageClass("reduced-redundancy")
-  val `standard-ia`: AWSStorageClass         = AWSStorageClass("standard-ia")
-  val `onezone-ia`: AWSStorageClass          = AWSStorageClass("onezone-ia")
-  val `intelligent-tiering`: AWSStorageClass = AWSStorageClass("intelligent-tiering")
-  val `glacier`: AWSStorageClass             = AWSStorageClass("glacier")
-  val `deep-archive`: AWSStorageClass        = AWSStorageClass("deep-archive")
-  val `outposts`: AWSStorageClass            = AWSStorageClass("outposts")
-  val `glacier-ir`: AWSStorageClass          = AWSStorageClass("glacier-ir")
+  val `STANDARD`: AWSStorageClass            = AWSStorageClass("STANDARD")
+  val `REDUCED-REDUNDANCY`: AWSStorageClass  = AWSStorageClass("REDUCED-REDUNDANCY")
+  val `STANDARD-IA`: AWSStorageClass         = AWSStorageClass("STANDARD-IA")
+  val `ONEZONE-IA`: AWSStorageClass          = AWSStorageClass("ONEZONE-IA")
+  val `INTELLIGENT_TIERING`: AWSStorageClass = AWSStorageClass("INTELLIGENT-TIERING")
+  val `GLACIER`: AWSStorageClass             = AWSStorageClass("GLACIER")
+  val `DEEP_ARCHIVE`: AWSStorageClass        = AWSStorageClass("DEEP-ARCHIVE")
+  val `OUTPOSTS`: AWSStorageClass            = AWSStorageClass("OUTPOSTS")
+  val `GLACIER-IR`: AWSStorageClass          = AWSStorageClass("GLACIER-IR")
 }
