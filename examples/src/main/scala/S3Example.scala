@@ -48,7 +48,11 @@ object S3Example extends IOApp {
 
   def s3GetBucketAclExample(s3: S3[IO]): IO[Unit] = s3.getBucketAcl(bucket).flatMap{ r => IO { println(s"Owner Name: ${r.ownerName}, Grants: ${r.grants}") }}
 
+  def s3CreateMultipartUploadExample(s3: S3[IO]): IO[Unit] = s3.createMultipartUpload(bucket, "multi-test").flatMap{ r => IO { println(s"UploadId: ${r.uploadId}") }}
+
   def s3GetMultipartUploadsExample(s3: S3[IO]): IO[Unit] = s3.listMultipartUploads(bucket).flatMap{ r => IO { println(s"Uploads: ${r.uploads}") }}
+
+  def s3AbortMultipartUploadExample(s3: S3[IO]): IO[Unit] = s3.abortMultipartUpload(bucket, "multi-test", "6bC8xVzWTYZ_Oz1sx8wKUS9_mewv6iUZBFPhV7yfXbUEsR_m5kImfpiI3Sjck.0oiEchLo5hLEmoL5dmVBvoodTTVYwjOi3vGa.Uik9UedVWZF_Fw0RK4oerodpv9ZOs").flatMap { r => IO { println(s"requestId: ${r.requestId}") } }
 
   override def run(args: List[String]): IO[ExitCode] =
     cli.parse(args, sys.env) match {

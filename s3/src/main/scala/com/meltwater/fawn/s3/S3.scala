@@ -21,8 +21,10 @@ trait S3[F[_]] {
   def getBucketAcl(bucket: String): F[GetBucketAclResponse]
 
   //Multipart Uploads
-  def createMultipartUpload(bucket: String, key: String, headers: Option[Headers] = None): F[CreateMultipartUploadResponse]
+  def createMultipartUpload(bucket: String, key: String, optHeaders: Option[Headers] = None): F[CreateMultipartUploadResponse]
+  def abortMultipartUpload(bucket: String, key: String, uploadId: String, optHeaders: Option[Headers] = None): F[AbortMultipartUploadResponse]
   def listMultipartUploads(bucket: String, optHeaders: Option[Headers] = None): F[ListMultipartUploadsResponse]
+  def uploadPart[T](bucket: String, key: String, partNumber: Int, uploadId: String, t: T, optHeaders: Option[Headers] = None)(implicit enc: EntityEncoder[F, T]): F[UploadPartResponse]
 }
 
 object S3 {
@@ -155,7 +157,7 @@ object S3 {
         )
       )(handleError)
 
-    override def createMultipartUpload(bucket: String, key: String, optHeaders: Option[Headers]): F[CreateMultipartUploadResponse] =
+    override def createMultipartUpload(bucket: String, key: String, optHeaders: Option[Headers] = None): F[CreateMultipartUploadResponse] =
       client.expectOr(
         Request[F](
           Method.POST,
@@ -163,9 +165,29 @@ object S3 {
             .toOption
             .get / key)
             .withQueryParam("uploads",""),
-          headers = optHeaders.getOrElse(Headers())
+          headers = optHeaders.getOrElse(Headers.empty)
         )
       )(handleError)
+
+    override def abortMultipartUpload(bucket: String, key: String, uploadId: String, optHeaders: Option[Headers] = None): F[AbortMultipartUploadResponse] =
+      client.run(
+        Request[F](
+          Method.DELETE,
+          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .toOption
+            .get / key)
+            .withQueryParam("uploadId", uploadId),
+          headers = optHeaders.getOrElse(Headers.empty)
+        )
+      ).use {
+        resp => {
+          {
+            for {
+              requestId <- getHeader("x-amz-request-id", resp.headers)
+            } yield AbortMultipartUploadResponse(requestId.value)
+          }
+        }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
+      }
 
     override def listMultipartUploads(bucket: String, optHeaders: Option[Headers]): F[ListMultipartUploadsResponse] =
       client.expectOr(
@@ -174,9 +196,33 @@ object S3 {
           (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
             .toOption
             .get)
-            .withQueryParam("uploads","")
+            .withQueryParam("uploads",""),
+          headers = optHeaders.getOrElse(Headers.empty)
         )
       )(handleError)
+
+    override def uploadPart[T](bucket: String, key: String, partNumber: Int, uploadId: String, t: T, optHeaders: Option[Headers])(implicit enc: EntityEncoder[F, T]): F[UploadPartResponse] =
+      client.run(
+        Request[F](
+          Method.PUT,
+          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .toOption
+            .get / key)
+            .withQueryParams(Map(
+              "partNumber" -> partNumber.toString.some,
+              "uploadId" -> uploadId.some
+            ).flattenOption),
+          headers = optHeaders.getOrElse(Headers.empty)
+        ).withEntity(t)
+      ).use { resp => {
+        {
+          for{
+            requestId <- getHeader("x-amz-request-id", resp.headers)
+            eTag <- getHeader("ETag", resp.headers)
+          } yield UploadPartResponse(requestId.value, eTag.value, resp.headers.filter(_ != eTag).filter(_ != requestId))
+        }
+      }
+    }
 
   }
 

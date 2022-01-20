@@ -146,3 +146,7 @@ object ListMultipartUploadsResponse {
     (__ \ "CommonPrefixes").read(seq[CommonPrefixes]).map(_.toVector).optional
   ).mapN(ListMultipartUploadsResponse.apply)
 }
+
+case class AbortMultipartUploadResponse(requestId: String)
+
+case class UploadPartResponse(requestId: String, eTag: String, headers: Headers)
