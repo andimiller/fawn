@@ -8,7 +8,7 @@ import com.meltwater.fawn.common.{AWSCredentials, AWSRegion, AWSService}
 import org.http4s._
 import org.http4s.client.Client
 import org.http4s.implicits._
-import org.http4s.scalaxml.xml
+import org.http4s.scalaxml._
 
 import scala.util.control.NoStackTrace
 
@@ -57,9 +57,16 @@ trait S3[F[_]] {
       uploadId: String,
       t: T,
       optHeaders: Option[Headers] = None)(implicit enc: EntityEncoder[F, T]): F[UploadPartResponse]
+  def completeMultipartUpload(
+      bucket: String,
+      key: String,
+      uploadId: String,
+      parts: List[String],
+      optHeaders: Option[Headers] = None): F[CompleteMultipartUploadResponse]
 }
 
 object S3 {
+
   implicit def xtractDecoder[F[_]: Sync, T: XmlReader]: EntityDecoder[F, T] = xml[F].transform {
     r =>
       r.flatMap { elem =>
@@ -350,6 +357,29 @@ object S3 {
             }
           }
         }
+
+    def part(num: Int, eTag: String): xml.Elem = <Part><PartNumber>{num}</PartNumber><ETag>{
+      eTag
+    }</ETag></Part>
+
+    def completeMultipartUploadBody(parts: List[String]): xml.Elem = <CompleteMultipartUpload>{
+      parts.zip(LazyList from 1).map { case (eTag, num) => part(num, eTag) }
+    }</CompleteMultipartUpload>
+
+    override def completeMultipartUpload(
+        bucket: String,
+        key: String,
+        uploadId: String,
+        parts: List[String],
+        optHeaders: Option[Headers]): F[CompleteMultipartUploadResponse] =
+      client.expectOr(
+        Request[F](
+          Method.POST,
+          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+            .withQueryParam("uploadId", uploadId),
+          headers = optHeaders.getOrElse(Headers.empty)
+        ).withEntity(completeMultipartUploadBody(parts))
+      )(handleError)
   }
 
 }

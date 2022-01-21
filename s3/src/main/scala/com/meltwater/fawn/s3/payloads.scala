@@ -186,3 +186,18 @@ object ListMultipartUploadsResponse {
 case class AbortMultipartUploadResponse(requestId: String)
 
 case class UploadPartResponse(requestId: String, eTag: String, headers: Headers)
+
+case class CompleteMultipartUploadResponse(
+    location: String,
+    bucket: String,
+    key: String,
+    eTag: String)
+
+object CompleteMultipartUploadResponse {
+  implicit val xmlDecoder: XmlReader[CompleteMultipartUploadResponse] = (
+    (__ \ "Location").read[String],
+    (__ \ "Bucket").read[String],
+    (__ \ "Key").read[String],
+    (__ \ "ETag").read[String]
+  ).mapN(CompleteMultipartUploadResponse.apply)
+}

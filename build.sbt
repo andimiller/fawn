@@ -101,7 +101,8 @@ lazy val s3 = project
     libraryDependencies ++= List(
       "com.lucidchart" %% "xtract"              % "2.3.0-alpha3",
       "org.typelevel"  %% "cats-tagless-macros" % "0.14.0",
-      "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test
+      "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test,
+      "org.http4s"     %% "http4s-scala-xml" % "0.21.31"
     ),
   )
 
