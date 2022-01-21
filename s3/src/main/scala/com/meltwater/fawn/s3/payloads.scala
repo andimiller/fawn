@@ -2,7 +2,7 @@ package com.meltwater.fawn.s3
 
 import cats.implicits._
 import com.lucidchart.open.xtract.XmlReader._
-import com.lucidchart.open.xtract.{XmlReader, __}
+import com.lucidchart.open.xtract.{__, XmlReader}
 import org.http4s.Headers
 
 case class Bucket(creationDate: String, name: String)
@@ -14,7 +14,10 @@ object Bucket {
   ).mapN(Bucket.apply)
 }
 
-case class ListAllMyBucketsResponse(buckets: Option[Vector[Bucket]], ownerName: String, ownerID: String)
+case class ListAllMyBucketsResponse(
+    buckets: Option[Vector[Bucket]],
+    ownerName: String,
+    ownerID: String)
 
 object ListAllMyBucketsResponse {
   implicit val xmlDecoder: XmlReader[ListAllMyBucketsResponse] = (
@@ -24,7 +27,12 @@ object ListAllMyBucketsResponse {
   ).mapN(ListAllMyBucketsResponse.apply)
 }
 
-case class Contents(key: String, lastModified: String, eTag: String, size: Int, storageClass: String)
+case class Contents(
+    key: String,
+    lastModified: String,
+    eTag: String,
+    size: Int,
+    storageClass: String)
 
 object Contents {
   implicit val xmlDecoder: XmlReader[Contents] = (
@@ -36,7 +44,13 @@ object Contents {
   ).mapN(Contents.apply)
 }
 
-case class ListBucketResponse(name: String, prefix: String, keyCount: Int, maxKeys: Int, isTruncated: Boolean, contents: Option[Vector[Contents]])
+case class ListBucketResponse(
+    name: String,
+    prefix: String,
+    keyCount: Int,
+    maxKeys: Int,
+    isTruncated: Boolean,
+    contents: Option[Vector[Contents]])
 
 object ListBucketResponse {
   implicit val xmlDecoder: XmlReader[ListBucketResponse] = (
@@ -55,7 +69,29 @@ case class DownloadFileResponse[T](requestId: String, eTag: String, headers: Hea
 
 case class DeleteObjectResponse(requestId: String)
 
-case class Grants(granteeName: String, granteeEmail: String, granteeId: String, granteeType: String, granteeUri: String, permission: String)
+case class CopyObjectResponse(eTag: String, lastModified: String)
+
+object CopyObjectResponse {
+  implicit val xmlDecoder: XmlReader[CopyObjectResponse] = (
+    (__ \ "ETag").read[String],
+    (__ \ "LastModified").read[String]
+  ).mapN(CopyObjectResponse.apply)
+}
+
+case class HeadObjectResponse(
+    requestId: String,
+    eTag: String,
+    contentLength: Int,
+    contentType: String,
+    headers: Headers)
+
+case class Grants(
+    granteeName: String,
+    granteeEmail: String,
+    granteeId: String,
+    granteeType: String,
+    granteeUri: String,
+    permission: String)
 
 object Grants {
   implicit val xmlDecoder: XmlReader[Grants] = (
@@ -89,14 +125,14 @@ object CreateMultipartUploadResponse {
 }
 
 case class Uploads(
-  initiated: String,
-  initiatorName: String,
-  initiatorId: String,
-  key: String,
-  ownerName: String,
-  ownerId: String,
-  storageClass: String,
-  uploadId: String)
+    initiated: String,
+    initiatorName: String,
+    initiatorId: String,
+    key: String,
+    ownerName: String,
+    ownerId: String,
+    storageClass: String,
+    uploadId: String)
 
 object Uploads {
   implicit val xmlDecoder: XmlReader[Uploads] = (
@@ -107,7 +143,7 @@ object Uploads {
     (__ \ "Owner" \ "DisplayName").read[String],
     (__ \ "Owner" \ "ID").read[String],
     (__ \ "StorageClass").read[String],
-    (__ \ "UploadId").read[String],
+    (__ \ "UploadId").read[String]
   ).mapN(Uploads.apply)
 }
 
@@ -119,17 +155,17 @@ object CommonPrefixes {
 }
 
 case class ListMultipartUploadsResponse(
-  bucket: String,
-  keyMarker: Option[String],
-  uploadIdMarker: Option[String],
-  nextKeyMarker: Option[String],
-  prefix: Option[String],
-  delimiter: Option[String],
-  nextUploadIdMarker: String,
-  maxUploads: Int,
-  isTruncated: Boolean,
-  uploads: Option[Vector[Uploads]],
-  commonPrefixes: Option[Vector[CommonPrefixes]])
+    bucket: String,
+    keyMarker: Option[String],
+    uploadIdMarker: Option[String],
+    nextKeyMarker: Option[String],
+    prefix: Option[String],
+    delimiter: Option[String],
+    nextUploadIdMarker: String,
+    maxUploads: Int,
+    isTruncated: Boolean,
+    uploads: Option[Vector[Uploads]],
+    commonPrefixes: Option[Vector[CommonPrefixes]])
 
 object ListMultipartUploadsResponse {
   implicit val xmlDecoder: XmlReader[ListMultipartUploadsResponse] = (

@@ -8,7 +8,7 @@ import org.http4s.{EntityDecoder, Header, Response}
 
 import scala.xml.Elem
 
-class S3PayloadsSpec extends FlatIOSpec{
+class S3PayloadsSpec extends FlatIOSpec {
 
   val exampleReceive: String =
     """<?xml version="1.0" encoding="UTF-8"?>
@@ -36,9 +36,8 @@ class S3PayloadsSpec extends FlatIOSpec{
       .value
       .flatMap { r =>
         IO {
-          r.map {
-            elem =>
-              ListAllMyBucketsResponse.xmlDecoder.read(elem)
+          r.map { elem =>
+            ListAllMyBucketsResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
@@ -71,9 +70,8 @@ class S3PayloadsSpec extends FlatIOSpec{
       .value
       .flatMap { r =>
         IO {
-          r.map {
-            elem =>
-              ListBucketResponse.xmlDecoder.read(elem)
+          r.map { elem =>
+            ListBucketResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
@@ -110,9 +108,8 @@ class S3PayloadsSpec extends FlatIOSpec{
       .value
       .flatMap { r =>
         IO {
-          r.map {
-            elem =>
-              GetBucketAclResponse.xmlDecoder.read(elem)
+          r.map { elem =>
+            GetBucketAclResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
@@ -183,9 +180,33 @@ class S3PayloadsSpec extends FlatIOSpec{
       .value
       .flatMap { r =>
         IO {
-          r.map {
-            elem =>
-              ListMultipartUploadsResponse.xmlDecoder.read(elem)
+          r.map { elem =>
+            ListMultipartUploadsResponse.xmlDecoder.read(elem)
+          }.isRight
+        }.assertEquals(true)
+      }
+  }
+
+  val copyObjectExample: String =
+    """<?xml version="1.0" encoding="UTF-8"?>
+      |<CopyObjectResult>
+      |  <LastModified>2009-10-28T22:32:00</LastModified>
+      |  <ETag>"9b2cf535f27731c974343645a3985328"</ETag>
+      |<CopyObjectResult>""".stripMargin
+
+  test("decode a copy object response") {
+    EntityDecoder[IO, Elem]
+      .decode(
+        Response[IO]()
+          .withEntity(getBucketAclExample)
+          .withHeaders(Header("content-type", "text/xml")),
+        false
+      )
+      .value
+      .flatMap { r =>
+        IO {
+          r.map { elem =>
+            ListMultipartUploadsResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
