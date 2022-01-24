@@ -183,6 +183,51 @@ object ListMultipartUploadsResponse {
   ).mapN(ListMultipartUploadsResponse.apply)
 }
 
+case class Parts(eTag: String, lastModified: String, partNumber: Int, size: Int)
+
+object Parts {
+  implicit val xmlDecoder: XmlReader[Parts] = (
+    (__ \ "ETag").read[String],
+    (__ \ "LastModified").read[String],
+    (__ \ "PartNumber").read[Int],
+    (__ \ "Size").read[Int]
+  ).mapN(Parts.apply)
+}
+
+case class ListPartsResponse(
+    bucket: String,
+    key: String,
+    uploadId: String,
+    partNumberMarker: Option[Int],
+    nextPartNumberMarker: Option[Int],
+    maxParts: Option[Int],
+    isTruncated: Boolean,
+    parts: Option[Vector[Parts]],
+    initiatorName: String,
+    initiatorId: String,
+    ownerName: String,
+    ownerId: String,
+    storageClass: String
+)
+
+object ListPartsResponse {
+  implicit val xmlDecoder: XmlReader[ListPartsResponse] = (
+    (__ \ "Bucket").read[String],
+    (__ \ "Key").read[String],
+    (__ \ "UploadId").read[String],
+    (__ \ "PartNumberMarker").read[Int].optional,
+    (__ \ "NextPartNumberMarker").read[Int].optional,
+    (__ \ "MaxParts").read[Int].optional,
+    (__ \ "IsTruncated").read[Boolean],
+    (__ \ "Part").read(seq[Parts]).map(_.toVector).optional,
+    (__ \ "Initiator" \ "DisplayName").read[String],
+    (__ \ "Initiator" \ "ID").read[String],
+    (__ \ "Owner" \ "DisplayName").read[String],
+    (__ \ "Owner" \ "ID").read[String],
+    (__ \ "StorageClass").read[String]
+  ).mapN(ListPartsResponse.apply)
+}
+
 case class AbortMultipartUploadResponse(requestId: String)
 
 case class UploadPartResponse(requestId: String, eTag: String, headers: Headers)

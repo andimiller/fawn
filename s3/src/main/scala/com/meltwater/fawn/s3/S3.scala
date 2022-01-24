@@ -11,6 +11,7 @@ import org.http4s.implicits._
 import org.http4s.scalaxml._
 
 import scala.util.control.NoStackTrace
+import scala.xml.Elem
 
 trait S3[F[_]] {
   //Bucket Interaction
@@ -50,6 +51,11 @@ trait S3[F[_]] {
   def listMultipartUploads(
       bucket: String,
       optHeaders: Option[Headers] = None): F[ListMultipartUploadsResponse]
+  def listParts(
+      bucket: String,
+      key: String,
+      uploadId: String,
+      optHeaders: Option[Headers] = None): F[ListPartsResponse]
   def uploadPart[T](
       bucket: String,
       key: String,
@@ -323,6 +329,20 @@ object S3 {
         )
       )(handleError)
 
+    override def listParts(
+        bucket: String,
+        key: String,
+        uploadId: String,
+        optHeaders: Option[Headers] = None): F[ListPartsResponse] =
+      client.expectOr(
+        Request[F](
+          Method.GET,
+          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+            .withQueryParam("uploadId", uploadId),
+          headers = optHeaders.getOrElse(Headers.empty)
+        )
+      )(handleError)
+
     override def uploadPart[T](
         bucket: String,
         key: String,
@@ -358,13 +378,13 @@ object S3 {
           }
         }
 
-    def part(num: Int, eTag: String): xml.Elem = <Part><PartNumber>{num}</PartNumber><ETag>{
-      eTag
-    }</ETag></Part>
+    private def part(num: Int, eTag: String): Elem =
+      <Part><PartNumber>{num}</PartNumber><ETag>{eTag}</ETag></Part>
 
-    def completeMultipartUploadBody(parts: List[String]): xml.Elem = <CompleteMultipartUpload>{
-      parts.zip(LazyList from 1).map { case (eTag, num) => part(num, eTag) }
-    }</CompleteMultipartUpload>
+    private def completeMultipartUploadBody(parts: List[String]): Elem =
+      <CompleteMultipartUpload>{
+        parts.zip(LazyList from 1).map { case (eTag, num) => part(num, eTag) }
+      }</CompleteMultipartUpload>
 
     override def completeMultipartUpload(
         bucket: String,

@@ -70,20 +70,50 @@ object S3Example extends IOApp {
     }
 
   def s3CreateMultipartUploadExample(s3: S3[IO]): IO[Unit] =
-    s3.createMultipartUpload(bucket, "multi-test").flatMap { r =>
+    s3.createMultipartUpload(bucket, key).flatMap { r =>
       IO { println(s"UploadId: ${r.uploadId}") }
     }
 
   def s3GetMultipartUploadsExample(s3: S3[IO]): IO[Unit] =
     s3.listMultipartUploads(bucket).flatMap { r => IO { println(s"Uploads: ${r.uploads}") } }
 
+  val key      = "multi-test.txt"
+  val uploadId =
+    "TspNRvLMYILoyJol5PyzTVf7iVx54uWikXq.eq_PGVyVZw1pVLCGtFXwYz8MExpduusraSn1FWglFOyucr6u4wWaOyhuVBDOqLlYLmkth.e.nScvFVxOivuc7E75q4ou"
+  val body1    = "testing1"
+  val body2    = "testing2"
+
   def s3AbortMultipartUploadExample(s3: S3[IO]): IO[Unit] = s3
     .abortMultipartUpload(
       bucket,
-      "multi-test",
-      "6bC8xVzWTYZ_Oz1sx8wKUS9_mewv6iUZBFPhV7yfXbUEsR_m5kImfpiI3Sjck.0oiEchLo5hLEmoL5dmVBvoodTTVYwjOi3vGa.Uik9UedVWZF_Fw0RK4oerodpv9ZOs"
+      key,
+      uploadId
     )
     .flatMap { r => IO { println(s"requestId: ${r.requestId}") } }
+
+  def s3UploadPartExample(s3: S3[IO]): IO[Unit] =
+    s3.uploadPart(
+      bucket,
+      key,
+      2,
+      uploadId,
+      body1
+    ).flatMap { r =>
+      IO { println(s"eTag: ${r.eTag}") }
+    }
+
+  def s3ListPartsExample(s3: S3[IO]): IO[Unit] =
+    s3.listParts(bucket, key, uploadId).flatMap { r =>
+      IO { println(s"Parts ${r.parts}") }
+    }
+
+  def s3CompleteMultipartUploadExample(s3: S3[IO]): IO[Unit] =
+    s3.completeMultipartUpload(
+      bucket,
+      key,
+      uploadId,
+      List("a119e534072584a0ea88cdea4664aecd", "6b7330782b2feb4924020cc4a57782a9")
+    ).flatMap { r => IO { println(r.eTag) } }
 
   override def run(args: List[String]): IO[ExitCode] =
     cli.parse(args, sys.env) match {
@@ -91,7 +121,12 @@ object S3Example extends IOApp {
       case Right((credentials: AWSCredentials, region: AWSRegion)) =>
         BlazeClientBuilder[IO](ExecutionContext.global).resource.use { client =>
           val s3 = S3[IO](client, credentials, region)
-          s3HeadObjectExample(s3).as(ExitCode.Success)
+          //s3CreateMultipartUploadExample(s3).as(ExitCode.Success)
+          //s3UploadPartExample(s3).as(ExitCode.Success)
+          s3CompleteMultipartUploadExample(s3).as(ExitCode.Success)
+        //s3ListPartsExample(s3).as(ExitCode.Success)
+        //s3GetMultipartUploadsExample(s3).as(ExitCode.Success)
+        //s3AbortMultipartUploadExample(s3).as(ExitCode.Success)
         }
     }
 }
