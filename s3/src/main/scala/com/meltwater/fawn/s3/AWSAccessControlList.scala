@@ -1,12 +1,41 @@
 package com.meltwater.fawn.s3
 
-case class AWSAccessControlList(value: String)
-object AWSAccessControlList {
-  val `private`: AWSAccessControlList                   = AWSAccessControlList("private")
-  val `public-read`: AWSAccessControlList               = AWSAccessControlList("public-read")
-  val `public-read-write`: AWSAccessControlList         = AWSAccessControlList("public-read-write")
-  val `authenticated-read`: AWSAccessControlList        = AWSAccessControlList("authenticated-read")
-  val `aws-exec-read`: AWSAccessControlList             = AWSAccessControlList("aws-exec-read")
-  val `bucket-owner-read`: AWSAccessControlList         = AWSAccessControlList("bucket-owner-read")
-  val `bucket-owner-full-control`: AWSAccessControlList = AWSAccessControlList("bucket-owner-full-control")
+import com.lucidchart.open.xtract.{__, XmlReader}
+import enumeratum._
+
+sealed trait AWSACL extends EnumEntry
+
+object AWSACL extends Enum[AWSACL] {
+
+  val values = findValues
+
+  case object READ         extends AWSACL
+  case object WRITE        extends AWSACL
+  case object READ_ACP     extends AWSACL
+  case object WRITE_ACP    extends AWSACL
+  case object FULL_CONTROL extends AWSACL
+
+  implicit val xmlDecoder: XmlReader[AWSACL] = (
+    (__).read[String]
+  ).map(AWSACL.withName)
+}
+
+sealed trait AWSCannedACL extends EnumEntry
+
+object AWSCannedACL extends Enum[AWSCannedACL] {
+
+  val values = findValues
+
+  case object `private`                   extends AWSCannedACL
+  case object `public-read`               extends AWSCannedACL
+  case object `public-read-write`         extends AWSCannedACL
+  case object `aws-exec-read`             extends AWSCannedACL
+  case object `authenticated-read`        extends AWSCannedACL
+  case object `bucket-owner-read`         extends AWSCannedACL
+  case object `bucket-owner-full-control` extends AWSCannedACL
+  case object `log-delivery-write`        extends AWSCannedACL
+
+  implicit val xmlDecoder: XmlReader[AWSCannedACL] = (
+    (__).read[String]
+  ).map(AWSCannedACL.withName)
 }

@@ -15,11 +15,11 @@ import scala.xml.Elem
 
 trait S3[F[_]] {
   //Bucket Interaction
-  def listBuckets(): F[ListAllMyBucketsResponse]
+  def listBuckets(): F[ListBucketsResponse]
   def getBucketAcl(bucket: String, optHeaders: Option[Headers] = None): F[GetBucketAclResponse]
 
   //Object Interaction
-  def listObjectsV2(bucket: String, optHeaders: Option[Headers] = None): F[ListBucketResponse]
+  def listObjectsV2(bucket: String, optHeaders: Option[Headers] = None): F[ListObjectsResponse]
   def putObject[T](bucket: String, key: String, t: T, optHeaders: Option[Headers] = None)(implicit
       enc: EntityEncoder[F, T]): F[UploadFileResponse]
   def getObject[T](bucket: String, key: String, optHeaders: Option[Headers] = None)(implicit
@@ -117,7 +117,7 @@ object S3 {
     private def getHeader(key: String, headers: Headers): F[Header] =
       Sync[F].fromEither(headers.get(key.ci).toRight(HeaderError(key, headers)))
 
-    override def listBuckets(): F[ListAllMyBucketsResponse] = client.expectOr(
+    override def listBuckets(): F[ListBucketsResponse] = client.expectOr(
       Request[F](
         Method.GET,
         Uri.fromString(s"https://s3.$region.amazonaws.com").toOption.get
@@ -141,7 +141,7 @@ object S3 {
 
     override def listObjectsV2(
         bucket: String,
-        optHeaders: Option[Headers] = None): F[ListBucketResponse] = client.expectOr(
+        optHeaders: Option[Headers] = None): F[ListObjectsResponse] = client.expectOr(
       Request[F](
         Method.GET,
         (Uri

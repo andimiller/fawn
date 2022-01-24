@@ -18,17 +18,24 @@ object S3Example extends IOApp {
         FawnDecline.strictRegion
       ).tupled)
 
-  val bucket = "andi-meltwater-test-staging-fawn"
+  val bucket   = "andi-meltwater-test-staging-fawn"
+  val key      = "multi-test.txt"
+  val uploadId =
+    "TspNRvLMYILoyJol5PyzTVf7iVx54uWikXq.eq_PGVyVZw1pVLCGtFXwYz8MExpduusraSn1FWglFOyucr6u4wWaOyhuVBDOqLlYLmkth.e.nScvFVxOivuc7E75q4ou"
+  val body1    = "testing1"
+  val body2    = "testing2"
 
   def s3ListBucketsExample(s3: S3[IO]): IO[Unit] = s3.listBuckets().flatMap { r =>
     IO {
       println(
-        s"Owner ID: ${r.ownerID}, Owner Name: ${r.ownerName}, Found ${r.buckets.size} buckets.")
+        s"Owner ID: ${r.owner.id}, Owner Name: ${r.owner.displayName}, Found ${r.buckets.size} buckets.")
     }
   }
 
   def s3GetBucketAclExample(s3: S3[IO]): IO[Unit] = s3.getBucketAcl(bucket).flatMap { r =>
-    IO { println(s"Owner Name: ${r.ownerName}, Grants: ${r.grants}") }
+    IO {
+      println(s"Owner Name: ${r.owner.displayName}, Grants: ${r.grants}")
+    }
   }
 
   def s3ListObjectsExample(s3: S3[IO]): IO[Unit] =
@@ -75,13 +82,9 @@ object S3Example extends IOApp {
     }
 
   def s3GetMultipartUploadsExample(s3: S3[IO]): IO[Unit] =
-    s3.listMultipartUploads(bucket).flatMap { r => IO { println(s"Uploads: ${r.uploads}") } }
-
-  val key      = "multi-test.txt"
-  val uploadId =
-    "TspNRvLMYILoyJol5PyzTVf7iVx54uWikXq.eq_PGVyVZw1pVLCGtFXwYz8MExpduusraSn1FWglFOyucr6u4wWaOyhuVBDOqLlYLmkth.e.nScvFVxOivuc7E75q4ou"
-  val body1    = "testing1"
-  val body2    = "testing2"
+    s3.listMultipartUploads(bucket).flatMap { r =>
+      IO { println(s"Uploads: ${r.uploads}") }
+    }
 
   def s3AbortMultipartUploadExample(s3: S3[IO]): IO[Unit] = s3
     .abortMultipartUpload(
@@ -123,10 +126,11 @@ object S3Example extends IOApp {
           val s3 = S3[IO](client, credentials, region)
           //s3CreateMultipartUploadExample(s3).as(ExitCode.Success)
           //s3UploadPartExample(s3).as(ExitCode.Success)
-          s3CompleteMultipartUploadExample(s3).as(ExitCode.Success)
-        //s3ListPartsExample(s3).as(ExitCode.Success)
-        //s3GetMultipartUploadsExample(s3).as(ExitCode.Success)
+          //s3CompleteMultipartUploadExample(s3).as(ExitCode.Success)
+          //s3ListPartsExample(s3).as(ExitCode.Success)
+          s3GetMultipartUploadsExample(s3).as(ExitCode.Success)
         //s3AbortMultipartUploadExample(s3).as(ExitCode.Success)
+        //s3GetBucketAclExample(s3).as(ExitCode.Success)
         }
     }
 }

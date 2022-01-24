@@ -1,14 +1,26 @@
 package com.meltwater.fawn.s3
 
-case class AWSStorageClass(value: String)
-object AWSStorageClass {
-  val `STANDARD`: AWSStorageClass            = AWSStorageClass("STANDARD")
-  val `REDUCED-REDUNDANCY`: AWSStorageClass  = AWSStorageClass("REDUCED-REDUNDANCY")
-  val `STANDARD-IA`: AWSStorageClass         = AWSStorageClass("STANDARD-IA")
-  val `ONEZONE-IA`: AWSStorageClass          = AWSStorageClass("ONEZONE-IA")
-  val `INTELLIGENT_TIERING`: AWSStorageClass = AWSStorageClass("INTELLIGENT-TIERING")
-  val `GLACIER`: AWSStorageClass             = AWSStorageClass("GLACIER")
-  val `DEEP_ARCHIVE`: AWSStorageClass        = AWSStorageClass("DEEP-ARCHIVE")
-  val `OUTPOSTS`: AWSStorageClass            = AWSStorageClass("OUTPOSTS")
-  val `GLACIER-IR`: AWSStorageClass          = AWSStorageClass("GLACIER-IR")
+import enumeratum._
+
+import com.lucidchart.open.xtract.{__, XmlReader}
+
+sealed trait AWSStorageClass extends EnumEntry
+
+object AWSStorageClass extends Enum[AWSStorageClass] {
+
+  val values = findValues
+
+  case object STANDARD            extends AWSStorageClass
+  case object REDUCED_REDUNDANCY  extends AWSStorageClass
+  case object STANDARD_IA         extends AWSStorageClass
+  case object ONEZONE_IA          extends AWSStorageClass
+  case object INTELLIGENT_TIERING extends AWSStorageClass
+  case object GLACIER             extends AWSStorageClass
+  case object DEEP_ARCHIVE        extends AWSStorageClass
+  case object OUTPOSTS            extends AWSStorageClass
+  case object GLACIER_IR          extends AWSStorageClass
+
+  implicit val xmlDecoder: XmlReader[AWSStorageClass] = (
+    (__).read[String]
+  ).map(AWSStorageClass.withName)
 }

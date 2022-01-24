@@ -1,7 +1,6 @@
-package com.meltwater.fawn.sqs
+package com.meltwater.fawn.s3
 
 import cats.effect.IO
-import com.meltwater.fawn.s3._
 import net.andimiller.munit.cats.effect.styles.FlatIOSpec
 import org.http4s.scalaxml.xml
 import org.http4s.{EntityDecoder, Header, Response}
@@ -10,7 +9,7 @@ import scala.xml.Elem
 
 class S3PayloadsSpec extends FlatIOSpec {
 
-  val exampleReceive: String =
+  val listBucketsExample: String =
     """<?xml version="1.0" encoding="UTF-8"?>
       |<ListAllMyBucketsResult>
       | <Buckets>
@@ -29,7 +28,7 @@ class S3PayloadsSpec extends FlatIOSpec {
     EntityDecoder[IO, Elem]
       .decode(
         Response[IO]()
-          .withEntity(exampleReceive)
+          .withEntity(listBucketsExample)
           .withHeaders(Header("content-type", "text/xml")),
         false
       )
@@ -37,13 +36,13 @@ class S3PayloadsSpec extends FlatIOSpec {
       .flatMap { r =>
         IO {
           r.map { elem =>
-            ListAllMyBucketsResponse.xmlDecoder.read(elem)
+            ListBucketsResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
   }
 
-  val exampleListObjectsV2: String =
+  val listObjectsExample: String =
     """<?xml version="1.0" encoding="UTF-8"?>
       |<ListBucketResponse>
       | <Name>bucket</Name>
@@ -63,7 +62,7 @@ class S3PayloadsSpec extends FlatIOSpec {
     EntityDecoder[IO, Elem]
       .decode(
         Response[IO]()
-          .withEntity(exampleListObjectsV2)
+          .withEntity(listObjectsExample)
           .withHeaders(Header("content-type", "text/xml")),
         false
       )
@@ -71,7 +70,32 @@ class S3PayloadsSpec extends FlatIOSpec {
       .flatMap { r =>
         IO {
           r.map { elem =>
-            ListBucketResponse.xmlDecoder.read(elem)
+            ListObjectsResponse.xmlDecoder.read(elem)
+          }.isRight
+        }.assertEquals(true)
+      }
+  }
+
+  val copyObjectExample: String =
+    """<?xml version="1.0" encoding="UTF-8"?>
+      |<CopyObjectResult>
+      |  <ETag>"9b2cf535f27731c974343645a3985328"</ETag>
+      |  <LastModified>2009-10-28T22:32:00</LastModified>
+      |</CopyObjectResult>""".stripMargin
+
+  test("decode a copy object response") {
+    EntityDecoder[IO, Elem]
+      .decode(
+        Response[IO]()
+          .withEntity(copyObjectExample)
+          .withHeaders(Header("content-type", "text/xml")),
+        false
+      )
+      .value
+      .flatMap { r =>
+        IO {
+          r.map { elem =>
+            CopyObjectResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
@@ -110,6 +134,33 @@ class S3PayloadsSpec extends FlatIOSpec {
         IO {
           r.map { elem =>
             GetBucketAclResponse.xmlDecoder.read(elem)
+          }.isRight
+        }.assertEquals(true)
+      }
+  }
+
+  val createMultipartUploadExample: String =
+    """<?xml version="1.0" encoding="UTF-8"?>
+      |<InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+      |   <Bucket>example-bucket</Bucket>
+      |   <Key>example-object</Key>
+      |   <UploadId>VXBsb2FkIElEIGZvciA2aWWpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA</UploadId>
+      |</InitiateMultipartUploadResult>
+      |""".stripMargin
+
+  test("decode a create multipart upload response") {
+    EntityDecoder[IO, Elem]
+      .decode(
+        Response[IO]()
+          .withEntity(getBucketAclExample)
+          .withHeaders(Header("content-type", "text/xml")),
+        false
+      )
+      .value
+      .flatMap { r =>
+        IO {
+          r.map { elem =>
+            CreateMultipartUploadResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
@@ -173,7 +224,7 @@ class S3PayloadsSpec extends FlatIOSpec {
     EntityDecoder[IO, Elem]
       .decode(
         Response[IO]()
-          .withEntity(getBucketAclExample)
+          .withEntity(listMultipartUploadsResponseExample)
           .withHeaders(Header("content-type", "text/xml")),
         false
       )
@@ -187,18 +238,44 @@ class S3PayloadsSpec extends FlatIOSpec {
       }
   }
 
-  val copyObjectExample: String =
+  val listPartsExample: String =
     """<?xml version="1.0" encoding="UTF-8"?>
-      |<CopyObjectResult>
-      |  <LastModified>2009-10-28T22:32:00</LastModified>
-      |  <ETag>"9b2cf535f27731c974343645a3985328"</ETag>
-      |<CopyObjectResult>""".stripMargin
+      |<ListPartsResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+      |  <Bucket>example-bucket</Bucket>
+      |  <Key>example-object</Key>
+      |  <UploadId>XXBsb2FkIElEIGZvciBlbHZpbmcncyVcdS1tb3ZpZS5tMnRzEEEwbG9hZA</UploadId>
+      |  <Initiator>
+      |      <ID>arn:aws:iam::111122223333:user/some-user-11116a31-17b5-4fb7-9df5-b288870f11xx</ID>
+      |      <DisplayName>umat-user-11116a31-17b5-4fb7-9df5-b288870f11xx</DisplayName>
+      |  </Initiator>
+      |  <Owner>
+      |    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
+      |    <DisplayName>someName</DisplayName>
+      |  </Owner>
+      |  <StorageClass>STANDARD</StorageClass>
+      |  <PartNumberMarker>1</PartNumberMarker>
+      |  <NextPartNumberMarker>3</NextPartNumberMarker>
+      |  <MaxParts>2</MaxParts>
+      |  <IsTruncated>true</IsTruncated>
+      |  <Part>
+      |    <PartNumber>2</PartNumber>
+      |    <LastModified>2010-11-10T20:48:34.000Z</LastModified>
+      |    <ETag>"7778aef83f66abc1fa1e8477f296d394"</ETag>
+      |    <Size>10485760</Size>
+      |  </Part>
+      |  <Part>
+      |    <PartNumber>3</PartNumber>
+      |    <LastModified>2010-11-10T20:48:33.000Z</LastModified>
+      |    <ETag>"aaaa18db4cc2f85cedef654fccc4a4x8"</ETag>
+      |    <Size>10485760</Size>
+      |  </Part>
+      |</ListPartsResult>""".stripMargin
 
-  test("decode a copy object response") {
+  test("decode a list multipart upload parts response") {
     EntityDecoder[IO, Elem]
       .decode(
         Response[IO]()
-          .withEntity(getBucketAclExample)
+          .withEntity(listMultipartUploadsResponseExample)
           .withHeaders(Header("content-type", "text/xml")),
         false
       )
@@ -206,7 +283,34 @@ class S3PayloadsSpec extends FlatIOSpec {
       .flatMap { r =>
         IO {
           r.map { elem =>
-            ListMultipartUploadsResponse.xmlDecoder.read(elem)
+            ListPartsResponse.xmlDecoder.read(elem)
+          }.isRight
+        }.assertEquals(true)
+      }
+  }
+
+  val completeMultipartUploadExample: String =
+    """<?xml version="1.0" encoding="UTF-8"?>
+      |<CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
+      |   <Location>http://Example-Bucket.s3.<Region>.amazonaws.com/Example-Object</Location>
+      |   <Bucket>Example-Bucket</Bucket>
+      |   <Key>Example-Object</Key>
+      |   <ETag>"3858f62230ac3c915f300c664312c11f-9"</ETag>
+      |</CompleteMultipartUploadResult>""".stripMargin
+
+  test("decode a complete multipart upload response") {
+    EntityDecoder[IO, Elem]
+      .decode(
+        Response[IO]()
+          .withEntity(listMultipartUploadsResponseExample)
+          .withHeaders(Header("content-type", "text/xml")),
+        false
+      )
+      .value
+      .flatMap { r =>
+        IO {
+          r.map { elem =>
+            CompleteMultipartUploadResponse.xmlDecoder.read(elem)
           }.isRight
         }.assertEquals(true)
       }
