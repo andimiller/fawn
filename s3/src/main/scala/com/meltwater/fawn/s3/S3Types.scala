@@ -1,8 +1,9 @@
 package com.meltwater.fawn.s3
 
 import cats.implicits._
-import com.lucidchart.open.xtract.XmlReader.{`enum`, attribute}
+import com.lucidchart.open.xtract.XmlReader.attribute
 import com.lucidchart.open.xtract.{__, XmlReader}
+import enumeratum._
 
 case class Owner(displayName: String, id: String)
 
@@ -48,11 +49,18 @@ object Object {
   ).mapN(apply)
 }
 
-object GranteeType extends Enumeration {
-  val CanonicalUser: GranteeType.Value         = Value("CanonicalUser")
-  val AmazonCustomerByEmail: GranteeType.Value = Value("AmazonCustomerByEmail")
-  val Group: GranteeType.Value                 = Value("Group")
-  val Unknown: GranteeType.Value               = Value("Unknown")
+sealed trait GranteeType extends EnumEntry
+
+object GranteeType extends Enum[GranteeType] {
+
+  val values = findValues
+
+  case object CanonicalUser         extends GranteeType
+  case object AmazonCustomerByEmail extends GranteeType
+  case object Group                 extends GranteeType
+  case object Unknown               extends GranteeType
+
+  implicit val xmlDecoder: XmlReader[GranteeType] = __.read[String].map(GranteeType.withName)
 }
 
 case class Grant(
@@ -60,7 +68,7 @@ case class Grant(
     email: String,
     id: String,
     uri: String,
-    gtype: GranteeType.Value,
+    gtype: GranteeType,
     permission: AWSACL)
 
 object Grant {
@@ -69,7 +77,7 @@ object Grant {
     (__ \ "Grantee" \ "EmailAddress").read[String],
     (__ \ "Grantee" \ "ID").read[String],
     attribute[String]("xmlns:xsi"),
-    attribute("xsi:type")(enum(GranteeType)).default(GranteeType.Unknown),
+    attribute[GranteeType]("xsi:type"),
     (__ \ "Permission").read[AWSACL]
   ).mapN(apply)
 }
