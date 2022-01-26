@@ -1,7 +1,6 @@
 package com.meltwater.fawn.s3
 
 import cats.implicits._
-import com.lucidchart.open.xtract.XmlReader.attribute
 import com.lucidchart.open.xtract.{__, XmlReader}
 import enumeratum._
 
@@ -61,25 +60,6 @@ object GranteeType extends Enum[GranteeType] {
   case object Unknown               extends GranteeType
 
   implicit val xmlDecoder: XmlReader[GranteeType] = __.read[String].map(GranteeType.withName)
-}
-
-case class Grant(
-    displayName: String,
-    email: String,
-    id: String,
-    uri: String,
-    gtype: GranteeType,
-    permission: AWSACL)
-
-object Grant {
-  implicit val xmlDecoder: XmlReader[Grant] = (
-    (__ \ "Grantee" \ "DisplayName").read[String],
-    (__ \ "Grantee" \ "EmailAddress").read[String],
-    (__ \ "Grantee" \ "ID").read[String],
-    attribute[String]("xmlns:xsi"),
-    attribute[GranteeType]("xsi:type"),
-    (__ \ "Permission").read[AWSACL]
-  ).mapN(apply)
 }
 
 case class Uploads(

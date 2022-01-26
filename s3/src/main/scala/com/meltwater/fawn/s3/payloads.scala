@@ -5,6 +5,20 @@ import com.lucidchart.open.xtract.XmlReader._
 import com.lucidchart.open.xtract.{__, XmlReader}
 import org.http4s.Headers
 
+/** Represents a generic response that contains the AWS Request Id and all remaining headers.
+  * @param requestId
+  *   Amazon AWS Request ID
+  * @param headers
+  *   All Response Headers
+  */
+case class GenericResponse(requestId: String, headers: Headers)
+object GenericResponse {
+  def apply(requestId: String, headers: Headers): GenericResponse =
+    new GenericResponse(requestId, headers.filter(h => h.value != requestId))
+}
+
+case class CreateBucketResponse(location: String, genericResponse: GenericResponse)
+
 case class ListBucketsResponse(buckets: Option[Vector[Bucket]], owner: Owner)
 
 object ListBucketsResponse {
@@ -16,7 +30,7 @@ object ListBucketsResponse {
 
 case class ListObjectsResponse(
     name: String,
-    prefix: String,
+    prefix: Option[String],
     keyCount: Int,
     maxKeys: Int,
     isTruncated: Boolean,
@@ -25,7 +39,7 @@ case class ListObjectsResponse(
 object ListObjectsResponse {
   implicit val xmlDecoder: XmlReader[ListObjectsResponse] = (
     (__ \ "Name").read[String],
-    (__ \ "Prefix").read[String],
+    (__ \ "Prefix").read[String].optional,
     (__ \ "KeyCount").read[Int],
     (__ \ "MaxKeys").read[Int],
     (__ \ "IsTruncated").read[Boolean],
@@ -33,11 +47,9 @@ object ListObjectsResponse {
   ).mapN(ListObjectsResponse.apply)
 }
 
-case class UploadFileResponse(requestId: String, eTag: String, headers: Headers)
+case class UploadFileResponse(eTag: String, genericResponse: GenericResponse)
 
-case class DownloadFileResponse[T](requestId: String, eTag: String, headers: Headers, body: T)
-
-case class DeleteObjectResponse(requestId: String)
+case class DownloadFileResponse[T](eTag: String, body: T, genericResponse: GenericResponse)
 
 case class CopyObjectResponse(eTag: String, lastModified: String)
 
@@ -49,20 +61,10 @@ object CopyObjectResponse {
 }
 
 case class HeadObjectResponse(
-    requestId: String,
     eTag: String,
     contentLength: Int,
     contentType: String,
-    headers: Headers)
-
-case class GetBucketAclResponse(owner: Owner, grants: Option[Vector[Grant]])
-
-object GetBucketAclResponse {
-  implicit val xmlDecoder: XmlReader[GetBucketAclResponse] = (
-    (__ \ "Owner").read[Owner],
-    (__ \ "AccessControlList" \ "Grant").read(seq[Grant]).map(_.toVector).optional
-  ).mapN(GetBucketAclResponse.apply)
-}
+    genericResponse: GenericResponse)
 
 case class CreateMultipartUploadResponse(bucket: String, key: String, uploadId: String)
 
@@ -71,7 +73,7 @@ object CreateMultipartUploadResponse {
     (__ \ "Bucket").read[String],
     (__ \ "Key").read[String],
     (__ \ "UploadId").read[String]
-  ).mapN(CreateMultipartUploadResponse.apply)
+  ).mapN(apply)
 }
 
 case class ListMultipartUploadsResponse(
@@ -132,10 +134,7 @@ object ListPartsResponse {
     (__ \ "StorageClass").read[String]
   ).mapN(ListPartsResponse.apply)
 }
-
-case class AbortMultipartUploadResponse(requestId: String)
-
-case class UploadPartResponse(requestId: String, eTag: String, headers: Headers)
+case class UploadPartResponse(eTag: String, genericResponse: GenericResponse)
 
 case class CompleteMultipartUploadResponse(
     location: String,

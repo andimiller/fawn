@@ -101,44 +101,6 @@ class S3PayloadsSpec extends FlatIOSpec {
       }
   }
 
-  val getBucketAclExample =
-    """<?xml version="1.0" encoding="UTF-8"?>
-      |<AccessControlPolicy>
-      | <Owner>
-      |    <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-      |    <DisplayName>CustomersName@amazon.com</DisplayName>
-      |  </Owner>
-      |  <AccessControlList>
-      |    <Grant>
-      |      <Grantee xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-      |			xsi:type="CanonicalUser">
-      |        <ID>75aa57f09aa0c8caeab4f8c24e99d10f8e7faeebf76c078efc7c6caea54ba06a</ID>
-      |        <DisplayName>CustomersName@amazon.com</DisplayName>
-      |      </Grantee>
-      |      <Permission>FULL_CONTROL</Permission>
-      |    </Grant>
-      |  </AccessControlList>
-      |</AccessControlPolicy>
-      |""".stripMargin
-
-  test("decode a get bucket acl response") {
-    EntityDecoder[IO, Elem]
-      .decode(
-        Response[IO]()
-          .withEntity(getBucketAclExample)
-          .withHeaders(Header("content-type", "text/xml")),
-        false
-      )
-      .value
-      .flatMap { r =>
-        IO {
-          r.map { elem =>
-            GetBucketAclResponse.xmlDecoder.read(elem)
-          }.isRight
-        }.assertEquals(true)
-      }
-  }
-
   val createMultipartUploadExample: String =
     """<?xml version="1.0" encoding="UTF-8"?>
       |<InitiateMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
@@ -152,7 +114,7 @@ class S3PayloadsSpec extends FlatIOSpec {
     EntityDecoder[IO, Elem]
       .decode(
         Response[IO]()
-          .withEntity(getBucketAclExample)
+          .withEntity(createMultipartUploadExample)
           .withHeaders(Header("content-type", "text/xml")),
         false
       )
@@ -292,7 +254,7 @@ class S3PayloadsSpec extends FlatIOSpec {
   val completeMultipartUploadExample: String =
     """<?xml version="1.0" encoding="UTF-8"?>
       |<CompleteMultipartUploadResult xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
-      |   <Location>http://Example-Bucket.s3.<Region>.amazonaws.com/Example-Object</Location>
+      |   <Location>http://Example-Bucket.s3.amazonaws.com/Example-Object</Location>
       |   <Bucket>Example-Bucket</Bucket>
       |   <Key>Example-Object</Key>
       |   <ETag>"3858f62230ac3c915f300c664312c11f-9"</ETag>
@@ -302,7 +264,7 @@ class S3PayloadsSpec extends FlatIOSpec {
     EntityDecoder[IO, Elem]
       .decode(
         Response[IO]()
-          .withEntity(listMultipartUploadsResponseExample)
+          .withEntity(completeMultipartUploadExample)
           .withHeaders(Header("content-type", "text/xml")),
         false
       )

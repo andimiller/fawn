@@ -1,11 +1,12 @@
-import cats.effect.{ExitCode, IO, IOApp}
-import cats.implicits.{catsSyntaxOptionId, catsSyntaxTuple2Semigroupal}
+import cats.effect.{ExitCode, IO, IOApp, Sync}
+import cats.implicits._
 import com.meltwater.fawn.common.decline.FawnDecline
 import com.meltwater.fawn.common.{AWSCredentials, AWSRegion}
 import com.meltwater.fawn.s3.{AWSStorageClass, S3}
 import com.monovore.decline.Command
 import org.http4s.client.blaze.BlazeClientBuilder
 import org.http4s.{EntityDecoder, Header, Headers}
+import org.typelevel.log4cats.slf4j.Slf4jLogger
 
 import scala.concurrent.ExecutionContext
 
@@ -20,10 +21,21 @@ object S3Example extends IOApp {
 
   val bucket   = "andi-meltwater-test-staging-fawn"
   val key      = "multi-test.txt"
-  val uploadId =
-    "TspNRvLMYILoyJol5PyzTVf7iVx54uWikXq.eq_PGVyVZw1pVLCGtFXwYz8MExpduusraSn1FWglFOyucr6u4wWaOyhuVBDOqLlYLmkth.e.nScvFVxOivuc7E75q4ou"
+  val uploadId = ""
   val body1    = "testing1"
   val body2    = "testing2"
+
+  def s3CreateBucketsExample(s3: S3[IO]): IO[Unit] = s3.createBucket(bucket).flatMap { r =>
+    IO {
+      println(s"Location: ${r.location}.")
+    }
+  }
+
+  //def s3DeleteBucketsExample(s3: S3[IO]): IO[Unit] = s3.deleteBucket(bucket).flatMap { r =>
+  //  IO {
+  //    println(s"RequestId: ${r.requestId}.")
+  //  }
+  // }
 
   def s3ListBucketsExample(s3: S3[IO]): IO[Unit] = s3.listBuckets().flatMap { r =>
     IO {
@@ -51,8 +63,10 @@ object S3Example extends IOApp {
       bucket,
       "test4.txt",
       "testing",
-      Headers(Header("x-amz-storage-class", AWSStorageClass.`STANDARD`.value)).some)
-    .flatMap { r => IO { println(s"eTag: ${r.eTag}, Other Headers: ${r.headers}") } }
+      Headers(Header("x-amz-storage-class", AWSStorageClass.`STANDARD`.toString)).some)
+    .flatMap { r =>
+      IO { println(s"eTag: ${r.eTag}, Other Headers: ${r.genericResponse.headers}") }
+    }
 
   implicit val decoder: EntityDecoder[IO, String] = EntityDecoder.text
   def s3GetObjectExample(s3: S3[IO]): IO[Unit]    =
@@ -115,8 +129,10 @@ object S3Example extends IOApp {
       bucket,
       key,
       uploadId,
-      List("a119e534072584a0ea88cdea4664aecd", "6b7330782b2feb4924020cc4a57782a9")
+      List()
     ).flatMap { r => IO { println(r.eTag) } }
+
+  implicit def unsafeLogger[F[_]: Sync] = Slf4jLogger.getLogger[F]
 
   override def run(args: List[String]): IO[ExitCode] =
     cli.parse(args, sys.env) match {
@@ -127,8 +143,8 @@ object S3Example extends IOApp {
           //s3CreateMultipartUploadExample(s3).as(ExitCode.Success)
           //s3UploadPartExample(s3).as(ExitCode.Success)
           //s3CompleteMultipartUploadExample(s3).as(ExitCode.Success)
-          //s3ListPartsExample(s3).as(ExitCode.Success)
-          s3GetMultipartUploadsExample(s3).as(ExitCode.Success)
+          s3ListPartsExample(s3).as(ExitCode.Success)
+        // s3GetMultipartUploadsExample(s3).as(ExitCode.Success)
         //s3AbortMultipartUploadExample(s3).as(ExitCode.Success)
         //s3GetBucketAclExample(s3).as(ExitCode.Success)
         }
