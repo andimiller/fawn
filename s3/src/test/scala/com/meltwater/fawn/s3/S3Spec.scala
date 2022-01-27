@@ -22,8 +22,8 @@ class S3Spec extends FlatIOSpec {
 
   val uploadId = "upload-id-example"
 
-  val requestIdExample = "request-id-example"
-  val genericResponse  = GenericResponse(requestIdExample, Headers.empty)
+  val requestIdExample                 = "request-id-example"
+  val genericResponse: GenericResponse = GenericResponse(requestIdExample, Headers.empty)
 
   val eTagExample = "dcalknjgfrewlknocadvsnlkjsdfalnk"
 

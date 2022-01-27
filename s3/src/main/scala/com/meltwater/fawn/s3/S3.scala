@@ -443,9 +443,9 @@ object S3 {
         exitCase match {
           case ExitCase.Completed => mpu.close
           case ExitCase.Error(e)  =>
-            Logger[F].error(e)("Aborting S3 Multiupload due to error") *> mpu.abort
+            Logger[F].error(e)("Aborting S3 Multipart upload due to error") *> mpu.abort
           case ExitCase.Canceled  =>
-            Logger[F].error("Aborting S3 Multiupload due to cancellation") *> mpu.abort
+            Logger[F].error("Aborting S3 Multipart upload due to cancellation") *> mpu.abort
         }
       }
     }
