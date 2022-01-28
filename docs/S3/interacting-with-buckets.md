@@ -13,7 +13,7 @@ import com.meltwater.fawn.common._
 import com.meltwater.fawn.s3._
 
 val credentials = AWSCredentials("KEYID", "SECRET")
-  val region      = AWSRegion.`eu-west-1`
+  val region      = AWSRegion.`eu-west-1`  
   val s3Resource: Resource[IO, S3[IO]] =
     BlazeClientBuilder[IO](ExecutionContext.global).resource.map { client =>
       S3[IO](client, credentials, region)
@@ -27,8 +27,21 @@ To create a bucket we can use the `createBucket` method. For this method and all
 In this example, a new bucket is made called `"hello-world-bucket-example"` with an additional header added that sets the ACL to `public-read`, allowing all users other than the owner read access. 
 
 ```scala mdoc:to-string
+import org.http4s.{Header, Headers}
+
 s3.createBucket(
       "hello-world-bucket-example", 
       Headers(Header("x-amz-acl", "public-read")))
 ```
 
+To delete a bucket, call the `deleteBucket` method.
+
+```scala mdoc:to-string
+s3.deleteBucket("hello-world-bucket-example")
+```
+
+To list all buckets available to the user, use the `listBuckets` method.
+
+```scala mdoc:to-string
+s3.listBuckets()
+```
