@@ -23,31 +23,33 @@ class S3Spec extends FlatIOSpec {
   val uploadId = "upload-id-example"
 
   val requestIdExample                 = "request-id-example"
-  val genericResponse: GenericResponse = GenericResponse(requestIdExample, Headers.empty)
+  val genericResponse: GenericResponse = GenericResponse(
+    requestIdExample,
+    Headers(
+      Header("Content-Type", "text/plain; charset=UTF-8"),
+      Header("Content-Length", 0.toString)))
 
   val eTagExample = "dcalknjgfrewlknocadvsnlkjsdfalnk"
 
   test("Test create bucket") {
     val client = HttpRoutes
       .of[IO] { case PUT -> Root =>
-        Ok("").map(
-          _.withHeaders(
-            Header("Location", s"/$bucket"),
-            Header("x-amz-request-id", requestIdExample)))
+        Ok("").map(_.transformHeaders(
+          _.put(Header("Location", s"/$bucket"), Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.createBucket(bucket).flatMap { resp => IO { resp.location } }.assertEquals(s"/$bucket")
+    s3.createBucket(bucket).map(_.location).assertEquals(s"/$bucket")
   }
 
   test("Test delete bucket") {
     val client = HttpRoutes
       .of[IO] { case DELETE -> Root =>
-        Ok("").map(_.withHeaders(Header("x-amz-request-id", requestIdExample)))
+        Ok("").map(_.transformHeaders(_.put(Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.deleteBucket(bucket).flatMap { resp => IO { resp } }.assertEquals(genericResponse)
+    s3.deleteBucket(bucket).assertEquals(genericResponse)
   }
 
   val listBucketsResponseExample =
@@ -72,7 +74,7 @@ class S3Spec extends FlatIOSpec {
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.listBuckets().flatMap { resp => IO { resp.buckets.get.size } }.assertEquals(1)
+    s3.listBuckets().map(_.buckets.get.size).assertEquals(1)
   }
 
   val listObjectsExample: String =
@@ -98,19 +100,19 @@ class S3Spec extends FlatIOSpec {
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.listObjectsV2(bucket).flatMap { resp => IO { resp.contents.get.size } }.assertEquals(1)
+    s3.listObjectsV2(bucket).map(_.contents.get.size).assertEquals(1)
   }
 
   test("Test putting objects") {
     val client = HttpRoutes
       .of[IO] { case PUT -> Root / `key` =>
-        Ok("").map(
-          _.withHeaders(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample)))
+        Ok("").map(_.transformHeaders(
+          _.put(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.putObject(bucket, key, body)
-      .flatMap { resp => IO { resp.eTag } }
+      .map(_.eTag)
       .assertEquals(eTagExample)
   }
 
@@ -118,23 +120,23 @@ class S3Spec extends FlatIOSpec {
   test("Test get object") {
     val client = HttpRoutes
       .of[IO] { case GET -> Root / `key` =>
-        Ok(body).map(
-          _.withHeaders(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample)))
+        Ok(body).map(_.transformHeaders(
+          _.put(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.getObject(bucket, key).flatMap { resp => IO { resp.body } }.assertEquals(body)
+    s3.getObject(bucket, key).map(_.body).assertEquals(body)
   }
 
   test("Test delete object") {
     val client = HttpRoutes
       .of[IO] { case DELETE -> Root / `key` =>
-        Ok().map(_.withHeaders(Header("x-amz-request-id", requestIdExample)))
+        Ok().map(_.transformHeaders(_.put(Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.deleteObject(bucket, key)
-      .flatMap { resp => IO { resp.requestId } }
+      .map(_.requestId)
       .assertEquals(requestIdExample)
   }
 
@@ -153,7 +155,7 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.copyObject(bucket, key, key)
-      .flatMap { resp => IO { resp.eTag } }
+      .map(_.eTag)
       .assertEquals("9b2cf535f27731c974343645a3985328")
   }
 
@@ -161,15 +163,16 @@ class S3Spec extends FlatIOSpec {
     val client = HttpRoutes
       .of[IO] { case HEAD -> Root / `key` =>
         Ok("").map(
-          _.withHeaders(
-            Header("x-amz-request-id", requestIdExample),
-            Header("ETag", eTagExample),
-            Header("Content-Length", 1.toString),
-            Header("Content-Type", "text/plain")))
+          _.transformHeaders(
+            _.put(
+              Header("x-amz-request-id", requestIdExample),
+              Header("ETag", eTagExample),
+              Header("Content-Length", 1.toString),
+              Header("Content-Type", "text/plain"))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.headObject(bucket, key).flatMap { resp => IO { resp.eTag } }.assertEquals(eTagExample)
+    s3.headObject(bucket, key).map(_.eTag).assertEquals(eTagExample)
   }
 
   val createMultipartUploadExample: String =
@@ -188,19 +191,19 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.createMultipartUpload(bucket, key)
-      .flatMap { resp => IO { resp.uploadId } }
+      .map(_.uploadId)
       .assertEquals("VXBsb2FkIElEIGZvciA2aWWpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA")
   }
 
   test("Test abort multipart upload") {
     val client = HttpRoutes
       .of[IO] { case DELETE -> Root / `key` =>
-        Ok().map(_.withHeaders(Header("x-amz-request-id", requestIdExample)))
+        Ok().map(_.transformHeaders(_.put(Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.abortMultipartUpload(bucket, key, uploadId)
-      .flatMap { resp => IO { resp.requestId } }
+      .map(_.requestId)
       .assertEquals(requestIdExample)
   }
 
@@ -266,7 +269,7 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listMultipartUploads(bucket)
-      .flatMap { resp => IO { resp.uploads.get.size } }
+      .map(_.uploads.get.size)
       .assertEquals(3)
   }
 
@@ -311,20 +314,20 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listParts(bucket, key, uploadId)
-      .flatMap { resp => IO { resp.parts.get.size } }
+      .map(_.parts.get.size)
       .assertEquals(2)
   }
 
   test("Test uploading part") {
     val client = HttpRoutes
       .of[IO] { case PUT -> Root / `key` =>
-        Ok().map(
-          _.withHeaders(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample)))
+        Ok().map(_.transformHeaders(
+          _.put(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample))))
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.uploadPart(bucket, key, 1, uploadId, body)
-      .flatMap { resp => IO { resp.eTag } }
+      .map(_.eTag)
       .assertEquals(eTagExample)
   }
 
@@ -345,7 +348,7 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.completeMultipartUpload(bucket, key, uploadId, List(eTagExample))
-      .flatMap { resp => IO { resp.eTag } }
+      .map(_.eTag)
       .assertEquals("3858f62230ac3c915f300c664312c11f-9")
   }
 

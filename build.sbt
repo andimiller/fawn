@@ -123,7 +123,7 @@ lazy val examples = project
 
 lazy val docs = project
   .in(file("docs-builder"))
-  .dependsOn(sqs, codecCirce, commonDecline)
+  .dependsOn(s3, sqs, codecCirce, commonDecline)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(baseSettings: _*)
   .settings(
@@ -139,7 +139,7 @@ lazy val docs = project
 
 val root = project
   .in(file("."))
-  .aggregate(common, commonDecline, auth, codec, codecCirce, sqs, examples, docs)
+  .aggregate(common, commonDecline, auth, codec, codecCirce, sqs, s3, examples, docs)
   .settings(
     publishArtifact := false
   )

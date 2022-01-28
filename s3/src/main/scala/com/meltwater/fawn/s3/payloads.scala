@@ -19,11 +19,11 @@ object GenericResponse {
 
 case class CreateBucketResponse(location: String, genericResponse: GenericResponse)
 
-case class ListBucketsResponse(buckets: Option[Vector[Bucket]], owner: Owner)
+case class ListBucketsResponse(buckets: Vector[Bucket], owner: Owner)
 
 object ListBucketsResponse {
   implicit val xmlDecoder: XmlReader[ListBucketsResponse] = (
-    (__ \ "Buckets" \ "Bucket").read(seq[Bucket]).map(_.toVector).optional,
+    (__ \ "Buckets" \ "Bucket").read(seq[Bucket]).map(_.toVector),
     (__ \ "Owner").read[Owner]
   ).mapN(ListBucketsResponse.apply)
 }
@@ -34,7 +34,7 @@ case class ListObjectsResponse(
     keyCount: Int,
     maxKeys: Int,
     isTruncated: Boolean,
-    contents: Option[Vector[Object]])
+    contents: Vector[S3Object])
 
 object ListObjectsResponse {
   implicit val xmlDecoder: XmlReader[ListObjectsResponse] = (
@@ -43,7 +43,7 @@ object ListObjectsResponse {
     (__ \ "KeyCount").read[Int],
     (__ \ "MaxKeys").read[Int],
     (__ \ "IsTruncated").read[Boolean],
-    (__ \ "Contents").read(seq[Object]).map(_.toVector).optional
+    (__ \ "Contents").read(seq[S3Object]).map(_.toVector)
   ).mapN(ListObjectsResponse.apply)
 }
 
@@ -113,7 +113,7 @@ case class ListPartsResponse(
     nextPartNumberMarker: Option[Int],
     maxParts: Option[Int],
     isTruncated: Boolean,
-    parts: Option[Vector[Parts]],
+    parts: Vector[Parts],
     initiator: Initiator,
     owner: Owner,
     storageClass: String
@@ -128,7 +128,7 @@ object ListPartsResponse {
     (__ \ "NextPartNumberMarker").read[Int].optional,
     (__ \ "MaxParts").read[Int].optional,
     (__ \ "IsTruncated").read[Boolean],
-    (__ \ "Part").read(seq[Parts]).map(_.toVector).optional,
+    (__ \ "Part").read(seq[Parts]).map(_.toVector),
     (__ \ "Initiator").read[Initiator],
     (__ \ "Owner").read[Owner],
     (__ \ "StorageClass").read[String]

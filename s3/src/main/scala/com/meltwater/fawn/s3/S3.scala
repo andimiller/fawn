@@ -123,7 +123,7 @@ object S3 {
     private def getHeader(key: String, headers: Headers): F[Header] =
       Sync[F].fromEither(headers.get(key.ci).toRight(HeaderError(key, headers)))
 
-    private def createBucketBody(): Elem =
+    private def createBucketBody: Elem =
       <CreateBucketConfiguration xmlns="http://s3.amazonaws.com/doc/2006-03-01/">
         <LocationConstraint>{region}</LocationConstraint>
       </CreateBucketConfiguration>
@@ -135,9 +135,9 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get,
+            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com"),
             headers = optHeaders.getOrElse(Headers.empty)
-          ).withEntity(createBucketBody())
+          ).withEntity(createBucketBody)
         )
         .use { resp =>
           {
@@ -157,7 +157,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get,
+            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com"),
             headers = optHeaders.getOrElse(Headers.empty)
           )
         )
@@ -174,7 +174,7 @@ object S3 {
     override def listBuckets(): F[ListBucketsResponse] = client.expectOr(
       Request[F](
         Method.GET,
-        Uri.fromString(s"https://s3.$region.amazonaws.com").toOption.get
+        Uri.unsafeFromString(s"https://s3.$region.amazonaws.com")
       )
     )(handleError)
 
@@ -184,9 +184,7 @@ object S3 {
       Request[F](
         Method.GET,
         Uri
-          .fromString(s"https://$bucket.s3.$region.amazonaws.com")
-          .toOption
-          .get
+          .unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com")
           .withQueryParams(
             Map(
               "list-type"    -> 2.toString.some, //sets the request to use the v2 version
@@ -206,7 +204,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key,
+            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
             headers = optHeaders.getOrElse(Headers())
           ).withEntity(t)
         )
@@ -227,7 +225,7 @@ object S3 {
         .run(
           Request[F](
             Method.GET,
-            Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key,
+            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
             headers = optHeaders.getOrElse(Headers.empty)
           )
         )
@@ -254,7 +252,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key,
+            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
             headers = optHeaders.getOrElse(Headers.empty)
           )
         )
@@ -276,7 +274,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.PUT,
-          Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key,
+          Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
           headers = Headers(Header("x-amz-copy-source", copySource)) ++
             optHeaders.getOrElse(Headers.empty)
         )
@@ -290,7 +288,7 @@ object S3 {
         .run(
           Request[F](
             Method.HEAD,
-            Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key,
+            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
             headers = optHeaders.getOrElse(Headers.empty)
           )
         )
@@ -318,7 +316,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.POST,
-          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+          (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
             .withQueryParam("uploads", ""),
           headers = optHeaders.getOrElse(Headers.empty)
         )
@@ -333,7 +331,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+            (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
               .withQueryParam("uploadId", uploadId),
             headers = optHeaders.getOrElse(Headers.empty)
           )
@@ -355,9 +353,7 @@ object S3 {
         Request[F](
           Method.GET,
           Uri
-            .fromString(s"https://$bucket.s3.$region.amazonaws.com")
-            .toOption
-            .get
+            .unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com")
             .withQueryParam("uploads", ""),
           headers = optHeaders.getOrElse(Headers.empty)
         )
@@ -371,7 +367,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.GET,
-          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+          (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
             .withQueryParam("uploadId", uploadId),
           headers = optHeaders.getOrElse(Headers.empty)
         )
@@ -389,7 +385,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+            (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
               .withQueryParams(
                 Map(
                   "partNumber" -> partNumber.toString.some,
@@ -426,7 +422,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.POST,
-          (Uri.fromString(s"https://$bucket.s3.$region.amazonaws.com").toOption.get / key)
+          (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
             .withQueryParam("uploadId", uploadId),
           headers = optHeaders.getOrElse(Headers.empty)
         ).withEntity(completeMultipartUploadBody(parts))

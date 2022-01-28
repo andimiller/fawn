@@ -31,15 +31,15 @@ object Bucket {
   ).mapN(apply)
 }
 
-case class Object(
+case class S3Object(
     key: String,
     lastModified: String,
     eTag: String,
     size: Int,
     storageClass: AWSStorageClass)
 
-object Object {
-  implicit val xmlDecoder: XmlReader[Object] = (
+object S3Object {
+  implicit val xmlDecoder: XmlReader[S3Object] = (
     (__ \ "Key").read[String],
     (__ \ "LastModified").read[String],
     (__ \ "ETag").read[String],

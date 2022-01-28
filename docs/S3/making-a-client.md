@@ -40,6 +40,11 @@ val accountId   = 123456L
 We can then make a `Resource` for our `http4s` client and then map it into an `S3`.
 
 ```scala mdoc:silent
+import org.typelevel.log4cats.SelfAwareStructuredLogger
+import org.typelevel.log4cats.slf4j.Slf4jLogger
+
+implicit def unsafeLogger[F[_]: Sync]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]  
+
 val s3Resource: Resource[IO, S3[IO]] = 
   BlazeClientBuilder[IO](ExecutionContext.global).resource.map { client =>
     S3[IO](client, credentials, region)
