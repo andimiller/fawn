@@ -1,7 +1,7 @@
 package com.meltwater.fawn.s3
 
 import cats.implicits._
-import com.lucidchart.open.xtract.{__, XmlReader}
+import com.lucidchart.open.xtract.{__, ParseError, TypeError, XmlReader}
 import enumeratum._
 
 case class Owner(displayName: String, id: String)
@@ -54,12 +54,15 @@ object GranteeType extends Enum[GranteeType] {
 
   val values = findValues
 
+  def GranteeError: ParseError = TypeError(classOf[GranteeType])
+
   case object CanonicalUser         extends GranteeType
   case object AmazonCustomerByEmail extends GranteeType
   case object Group                 extends GranteeType
   case object Unknown               extends GranteeType
 
-  implicit val xmlDecoder: XmlReader[GranteeType] = __.read[String].map(GranteeType.withName)
+  implicit val xmlDecoder: XmlReader[GranteeType] =
+    __.read[String].tryMap(_ => GranteeError)(GranteeType.withName)
 }
 
 case class Uploads(

@@ -74,7 +74,7 @@ class S3Spec extends FlatIOSpec {
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.listBuckets().map(_.buckets.get.size).assertEquals(1)
+    s3.listBuckets().map(_.buckets.size).assertEquals(1)
   }
 
   val listObjectsExample: String =
@@ -100,7 +100,7 @@ class S3Spec extends FlatIOSpec {
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.listObjectsV2(bucket).map(_.contents.get.size).assertEquals(1)
+    s3.listObjectsV2(bucket).map(_.contents.size).assertEquals(1)
   }
 
   test("Test putting objects") {
@@ -314,7 +314,7 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listParts(bucket, key, uploadId)
-      .map(_.parts.get.size)
+      .map(_.parts.size)
       .assertEquals(2)
   }
 

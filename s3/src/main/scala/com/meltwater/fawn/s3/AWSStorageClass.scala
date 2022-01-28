@@ -1,14 +1,15 @@
 package com.meltwater.fawn.s3
 
 import enumeratum._
-
-import com.lucidchart.open.xtract.{__, XmlReader}
+import com.lucidchart.open.xtract.{__, ParseError, TypeError, XmlReader}
 
 sealed trait AWSStorageClass extends EnumEntry
 
 object AWSStorageClass extends Enum[AWSStorageClass] {
 
   val values = findValues
+
+  def AWSStorageClassError: ParseError = TypeError(classOf[AWSStorageClass])
 
   case object STANDARD            extends AWSStorageClass
   case object REDUCED_REDUNDANCY  extends AWSStorageClass
@@ -22,5 +23,5 @@ object AWSStorageClass extends Enum[AWSStorageClass] {
 
   implicit val xmlDecoder: XmlReader[AWSStorageClass] = (
     (__).read[String]
-  ).map(AWSStorageClass.withName)
+  ).tryMap(_ => AWSStorageClassError)(AWSStorageClass.withName)
 }

@@ -1,6 +1,6 @@
 package com.meltwater.fawn.s3
 
-import com.lucidchart.open.xtract.{__, XmlReader}
+import com.lucidchart.open.xtract.{__, ParseError, TypeError, XmlReader}
 import enumeratum._
 
 sealed trait AWSACL extends EnumEntry
@@ -8,6 +8,8 @@ sealed trait AWSACL extends EnumEntry
 object AWSACL extends Enum[AWSACL] {
 
   val values = findValues
+
+  def AWSACLError: ParseError = TypeError(classOf[AWSACL])
 
   case object READ         extends AWSACL
   case object WRITE        extends AWSACL
@@ -17,7 +19,7 @@ object AWSACL extends Enum[AWSACL] {
 
   implicit val xmlDecoder: XmlReader[AWSACL] = (
     (__).read[String]
-  ).map(AWSACL.withName)
+  ).tryMap(_ => AWSACLError)(AWSACL.withName)
 }
 
 sealed trait AWSCannedACL extends EnumEntry
@@ -25,6 +27,8 @@ sealed trait AWSCannedACL extends EnumEntry
 object AWSCannedACL extends Enum[AWSCannedACL] {
 
   val values = findValues
+
+  def AWSCannedACLError: ParseError = TypeError(classOf[AWSCannedACL])
 
   case object `private`                   extends AWSCannedACL
   case object `public-read`               extends AWSCannedACL
@@ -37,5 +41,5 @@ object AWSCannedACL extends Enum[AWSCannedACL] {
 
   implicit val xmlDecoder: XmlReader[AWSCannedACL] = (
     (__).read[String]
-  ).map(AWSCannedACL.withName)
+  ).tryMap(_ => AWSCannedACLError)(AWSCannedACL.withName)
 }
