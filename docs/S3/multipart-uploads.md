@@ -14,6 +14,7 @@ import com.meltwater.fawn.common._
 import com.meltwater.fawn.s3._
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import cats.implicits._
 
 val credentials = AWSCredentials("KEYID", "SECRET")
 val region      = AWSRegion.`eu-west-1`
@@ -107,6 +108,6 @@ This `Resource` includes the `sendPart` method which is used to send a file chun
 import org.http4s.EntityEncoder
 
 //For docs purposes, send a singular part t. 
-def upload[T](t: List[T])(implicit enc: EntityEncoder[IO, T]) =
+def upload[T](t: T)(implicit enc: EntityEncoder[IO, T]) =
     s3.startMultipartUpload("bucket", "key").use { mp => mp.sendPart(t) }
 ```

@@ -37,7 +37,7 @@ import org.http4s.{Header, Headers}
 
 s3.createBucket(
       "hello-world-bucket-example", 
-      Some(Headers(Header("x-amz-acl", "public-read"))))
+      Headers(Header("x-amz-acl", "public-read")))
 ```
 
 To delete a bucket, call the `deleteBucket` method. The user must have the required permissions to complete this action.
