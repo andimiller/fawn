@@ -51,7 +51,7 @@ val s3Resource: Resource[IO, S3[IO]] =
   }
 ```
 
-You would then `use` it or it in with your program's other `Resource`s:
+You would then `use` it or tie it in with your program's other `Resource`s:
 
 ```scala mdoc:silent
 s3Resource.use { s3 =>

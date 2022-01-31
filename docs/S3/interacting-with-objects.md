@@ -14,6 +14,7 @@ import com.meltwater.fawn.common._
 import com.meltwater.fawn.s3._
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
+import cats.implicits._
 
 val credentials = AWSCredentials("KEYID", "SECRET")
 val region      = AWSRegion.`eu-west-1`
@@ -33,13 +34,26 @@ All methods described here support additional optional headers that can be inclu
 To list all objects in a bucket, we can use the `listObjectsV2` method. This makes use of the V2 version of the action in S3.
 
 ```scala mdoc:to-string
-s3.listObjectsV2("hello-world-bucket-example")
+//Print an objects name (key) and ETag.
+def printObject(contents: S3Object): IO[Unit] = IO {
+    println(s"S3Object Name: ${contents.key},  S3Object ETag: ${contents.eTag}")
+}
+
+s3.listObjectsV2("hello-world-bucket-example").flatMap { response =>
+    response.contents.traverse(printObject _)
+}
 ```
 
-To upload a file into a bucket as an object, use the `putObject` method. This method requres an `EntityEncoder[F, T]` for what you intend to upload. 
+To upload a file into a bucket as an object, use the `putObject` method. This method requires an `EntityEncoder[F, T]` for what you intend to upload. 
 
 ```scala mdoc:to-string
-s3.putObject("hello-world-bucket-example", "example-file.txt", "testing-file")
+import org.http4s.EntityEncoder
+
+implicit val encoder: EntityEncoder[IO, String] = EntityEncoder.stringEncoder
+  
+val body = "testing-file-body"
+
+s3.putObject("hello-world-bucket-example", "example-file.txt", body)
 ```
 
 To download an object from a bucket, use the `getObject` method. In order to decode the contents of the file, an `EntityDecoder[F, T]` must be provided.
@@ -49,7 +63,10 @@ import org.http4s.EntityDecoder
 
 implicit val decoder: EntityDecoder[IO, String] = EntityDecoder.text
 
-s3.getObject("hello-world-bucket-example", "example-file.txt")
+//Download the object then print it's decoded contents. 
+s3.getObject("hello-world-bucket-example", "example-file.txt").flatMap { response =>
+    IO { println(response.body) }
+}
 ```
 
 An object can be deleted using the `deleteObject` method. 
@@ -67,5 +84,8 @@ s3.copyObject("hello-world-bucket-example", "new-example-file.txt","example-file
 To obtain the metadata of an object in the form of headers, `headObject` can be used. 
 
 ```scala mdoc:to-string
-s3.headObject("hello-world-bucket-example", "example-file.txt")
+//Print the object's ETag
+s3.headObject("hello-world-bucket-example", "example-file.txt").flatMap { response =>
+    IO { println(response.eTag) }
+}
 ```
