@@ -35,8 +35,8 @@ To list all objects in a bucket, we can use the `listObjectsV2` method. This mak
 
 ```scala mdoc:to-string
 //Print an objects name (key) and ETag.
-def printObject(contents: S3Object): IO[Unit] = IO {
-    println(s"S3Object Name: ${contents.key},  S3Object ETag: ${contents.eTag}")
+def printObject(s3Object: S3Object): IO[Unit] = IO {
+    println(s"S3Object Name: ${s3Object.key},  S3Object ETag: ${s3Object.eTag}")
 }
 
 s3.listObjectsV2("hello-world-bucket-example").flatMap { response =>
