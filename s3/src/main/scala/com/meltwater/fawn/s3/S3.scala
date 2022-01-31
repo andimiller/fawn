@@ -19,61 +19,58 @@ import scala.xml.Elem
   */
 trait S3[F[_]] {
   //Bucket Interaction
-  def createBucket(bucket: String, optHeaders: Option[Headers] = None): F[CreateBucketResponse]
-  def deleteBucket(bucket: String, optHeaders: Option[Headers] = None): F[GenericResponse]
+  def createBucket(bucket: String, optHeaders: Headers = Headers.empty): F[CreateBucketResponse]
+  def deleteBucket(bucket: String, optHeaders: Headers = Headers.empty): F[Headers]
   def listBuckets(): F[ListBucketsResponse]
 
   //Object Interaction
-  def listObjectsV2(bucket: String, optHeaders: Option[Headers] = None): F[ListObjectsResponse]
-  def putObject[T](bucket: String, key: String, t: T, optHeaders: Option[Headers] = None)(implicit
+  def listObjectsV2(bucket: String, optHeaders: Headers = Headers.empty): F[ListObjectsResponse]
+  def putObject[T](bucket: String, key: String, t: T, optHeaders: Headers = Headers.empty)(implicit
       enc: EntityEncoder[F, T]): F[UploadFileResponse]
-  def getObject[T](bucket: String, key: String, optHeaders: Option[Headers] = None)(implicit
+  def getObject[T](bucket: String, key: String, optHeaders: Headers = Headers.empty)(implicit
       dec: EntityDecoder[F, T]): F[DownloadFileResponse[T]]
-  def deleteObject(
-      bucket: String,
-      key: String,
-      optHeaders: Option[Headers] = None): F[GenericResponse]
+  def deleteObject(bucket: String, key: String, optHeaders: Headers = Headers.empty): F[Headers]
   def copyObject(
       bucket: String,
       key: String,
       copySource: String,
-      optHeaders: Option[Headers] = None): F[CopyObjectResponse]
+      optHeaders: Headers = Headers.empty): F[CopyObjectResponse]
   def headObject(
       bucket: String,
       key: String,
-      optHeaders: Option[Headers] = None): F[HeadObjectResponse]
+      optHeaders: Headers = Headers.empty): F[HeadObjectResponse]
 
   //Multipart Uploads
   def createMultipartUpload(
       bucket: String,
       key: String,
-      optHeaders: Option[Headers] = None): F[CreateMultipartUploadResponse]
+      optHeaders: Headers = Headers.empty): F[CreateMultipartUploadResponse]
   def abortMultipartUpload(
       bucket: String,
       key: String,
       uploadId: String,
-      optHeaders: Option[Headers] = None): F[GenericResponse]
+      optHeaders: Headers = Headers.empty): F[Headers]
   def listMultipartUploads(
       bucket: String,
-      optHeaders: Option[Headers] = None): F[ListMultipartUploadsResponse]
+      optHeaders: Headers = Headers.empty): F[ListMultipartUploadsResponse]
   def listParts(
       bucket: String,
       key: String,
       uploadId: String,
-      optHeaders: Option[Headers] = None): F[ListPartsResponse]
+      optHeaders: Headers = Headers.empty): F[ListPartsResponse]
   def uploadPart[T](
       bucket: String,
       key: String,
       partNumber: Int,
       uploadId: String,
       t: T,
-      optHeaders: Option[Headers] = None)(implicit enc: EntityEncoder[F, T]): F[UploadPartResponse]
+      optHeaders: Headers = Headers.empty)(implicit enc: EntityEncoder[F, T]): F[UploadPartResponse]
   def completeMultipartUpload(
       bucket: String,
       key: String,
       uploadId: String,
       parts: List[String],
-      optHeaders: Option[Headers] = None): F[CompleteMultipartUploadResponse]
+      optHeaders: Headers = Headers.empty): F[CompleteMultipartUploadResponse]
   def startMultipartUpload(bucket: String, key: String): Resource[F, MultipartUpload[F]]
 }
 
@@ -130,45 +127,36 @@ object S3 {
 
     override def createBucket(
         bucket: String,
-        optHeaders: Option[Headers]): F[CreateBucketResponse] =
+        optHeaders: Headers = Headers.empty): F[CreateBucketResponse] =
       client
         .run(
           Request[F](
             Method.PUT,
             Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com"),
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           ).withEntity(createBucketBody)
         )
         .use { resp =>
           {
             {
               for {
-                location  <- getHeader("Location", resp.headers)
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-              } yield CreateBucketResponse(
-                location.value,
-                GenericResponse(requestId.value, resp.headers))
+                location <- getHeader("Location", resp.headers)
+              } yield CreateBucketResponse(location.value, resp.headers)
             }
           }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
 
-    override def deleteBucket(bucket: String, optHeaders: Option[Headers]): F[GenericResponse] =
+    override def deleteBucket(bucket: String, optHeaders: Headers = Headers.empty): F[Headers] =
       client
         .run(
           Request[F](
             Method.DELETE,
             Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com"),
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           )
         )
         .use { resp =>
-          {
-            {
-              for {
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-              } yield GenericResponse(requestId.value, resp.headers)
-            }
-          }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
+          { resp.headers.pure[F] }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
 
     override def listBuckets(): F[ListBucketsResponse] = client.expectOr(
@@ -180,7 +168,7 @@ object S3 {
 
     override def listObjectsV2(
         bucket: String,
-        optHeaders: Option[Headers] = None): F[ListObjectsResponse] = client.expectOr(
+        optHeaders: Headers = Headers.empty): F[ListObjectsResponse] = client.expectOr(
       Request[F](
         Method.GET,
         Uri
@@ -190,7 +178,7 @@ object S3 {
               "list-type"    -> 2.toString.some, //sets the request to use the v2 version
               "Content-Type" -> "text/plain".some
             ).flattenOption),
-        headers = optHeaders.getOrElse(Headers.empty)
+        headers = optHeaders
       )
     )(handleError)
 
@@ -198,48 +186,43 @@ object S3 {
         bucket: String,
         key: String,
         t: T,
-        optHeaders: Option[Headers] = None)(implicit
+        optHeaders: Headers = Headers.empty)(implicit
         enc: EntityEncoder[F, T]): F[UploadFileResponse] =
       client
         .run(
           Request[F](
             Method.PUT,
             Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
-            headers = optHeaders.getOrElse(Headers())
+            headers = optHeaders
           ).withEntity(t)
         )
         .use { resp =>
           {
             {
               for {
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-                etag      <- getHeader("ETag", resp.headers)
-              } yield UploadFileResponse(etag.value, GenericResponse(requestId.value, resp.headers))
+                etag <- getHeader("ETag", resp.headers)
+              } yield UploadFileResponse(etag.value, resp.headers)
             }
           }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
 
-    override def getObject[T](bucket: String, key: String, optHeaders: Option[Headers] = None)(
+    override def getObject[T](bucket: String, key: String, optHeaders: Headers = Headers.empty)(
         implicit dec: EntityDecoder[F, T]): F[DownloadFileResponse[T]] =
       client
         .run(
           Request[F](
             Method.GET,
             Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           )
         )
         .use { resp =>
           {
             {
               for {
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-                etag      <- getHeader("ETag", resp.headers)
-                body      <- resp.as[T]
-              } yield DownloadFileResponse(
-                etag.value,
-                body,
-                GenericResponse(requestId.value, resp.headers))
+                etag <- getHeader("ETag", resp.headers)
+                body <- resp.as[T]
+              } yield DownloadFileResponse(etag.value, body, resp.headers)
             }
           }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
@@ -247,56 +230,49 @@ object S3 {
     override def deleteObject(
         bucket: String,
         key: String,
-        optHeaders: Option[Headers] = None): F[GenericResponse] =
+        optHeaders: Headers = Headers.empty): F[Headers] =
       client
         .run(
           Request[F](
             Method.DELETE,
             Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           )
         )
         .use { resp =>
-          {
-            {
-              for {
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-              } yield GenericResponse(requestId.value, resp.headers)
-            }
-          }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
+          { resp.headers.pure[F] }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
 
     override def copyObject(
         bucket: String,
         key: String,
         copySource: String,
-        optHeaders: Option[Headers] = None): F[CopyObjectResponse] =
+        optHeaders: Headers = Headers.empty): F[CopyObjectResponse] =
       client.expectOr(
         Request[F](
           Method.PUT,
           Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
           headers = Headers(Header("x-amz-copy-source", copySource)) ++
-            optHeaders.getOrElse(Headers.empty)
+            optHeaders
         )
       )(handleError)
 
     override def headObject(
         bucket: String,
         key: String,
-        optHeaders: Option[Headers]): F[HeadObjectResponse] =
+        optHeaders: Headers): F[HeadObjectResponse] =
       client
         .run(
           Request[F](
             Method.HEAD,
             Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           )
         )
         .use { resp =>
           {
             {
               for {
-                requestId     <- getHeader("x-amz-request-id", resp.headers)
                 eTag          <- getHeader("ETag", resp.headers)
                 contentLength <- getHeader("Content-Length", resp.headers)
                 contentType   <- getHeader("Content-Type", resp.headers)
@@ -304,7 +280,7 @@ object S3 {
                 eTag.value,
                 contentLength.value.toInt,
                 contentType.value,
-                GenericResponse(requestId.value, resp.headers))
+                resp.headers)
             }
           }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
@@ -312,13 +288,13 @@ object S3 {
     override def createMultipartUpload(
         bucket: String,
         key: String,
-        optHeaders: Option[Headers] = None): F[CreateMultipartUploadResponse] =
+        optHeaders: Headers = Headers.empty): F[CreateMultipartUploadResponse] =
       client.expectOr(
         Request[F](
           Method.POST,
           (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
             .withQueryParam("uploads", ""),
-          headers = optHeaders.getOrElse(Headers.empty)
+          headers = optHeaders
         )
       )(handleError)
 
@@ -326,36 +302,30 @@ object S3 {
         bucket: String,
         key: String,
         uploadId: String,
-        optHeaders: Option[Headers] = None): F[GenericResponse] =
+        optHeaders: Headers = Headers.empty): F[Headers] =
       client
         .run(
           Request[F](
             Method.DELETE,
             (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
               .withQueryParam("uploadId", uploadId),
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           )
         )
         .use { resp =>
-          {
-            {
-              for {
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-              } yield GenericResponse(requestId.value, resp.headers)
-            }
-          }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
+          { resp.headers.pure[F] }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
 
     override def listMultipartUploads(
         bucket: String,
-        optHeaders: Option[Headers] = None): F[ListMultipartUploadsResponse] =
+        optHeaders: Headers = Headers.empty): F[ListMultipartUploadsResponse] =
       client.expectOr(
         Request[F](
           Method.GET,
           Uri
             .unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com")
             .withQueryParam("uploads", ""),
-          headers = optHeaders.getOrElse(Headers.empty)
+          headers = optHeaders
         )
       )(handleError)
 
@@ -363,13 +333,13 @@ object S3 {
         bucket: String,
         key: String,
         uploadId: String,
-        optHeaders: Option[Headers] = None): F[ListPartsResponse] =
+        optHeaders: Headers = Headers.empty): F[ListPartsResponse] =
       client.expectOr(
         Request[F](
           Method.GET,
           (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
             .withQueryParam("uploadId", uploadId),
-          headers = optHeaders.getOrElse(Headers.empty)
+          headers = optHeaders
         )
       )(handleError)
 
@@ -379,7 +349,7 @@ object S3 {
         partNumber: Int,
         uploadId: String,
         body: T,
-        optHeaders: Option[Headers] = None)(implicit
+        optHeaders: Headers = Headers.empty)(implicit
         enc: EntityEncoder[F, T]): F[UploadPartResponse] =
       client
         .run(
@@ -391,16 +361,15 @@ object S3 {
                   "partNumber" -> partNumber.toString.some,
                   "uploadId"   -> uploadId.some
                 ).flattenOption),
-            headers = optHeaders.getOrElse(Headers.empty)
+            headers = optHeaders
           ).withEntity(body)
         )
         .use { resp =>
           {
             {
               for {
-                requestId <- getHeader("x-amz-request-id", resp.headers)
-                eTag      <- getHeader("ETag", resp.headers)
-              } yield UploadPartResponse(eTag.value, GenericResponse(requestId.value, resp.headers))
+                eTag <- getHeader("ETag", resp.headers)
+              } yield UploadPartResponse(eTag.value, resp.headers)
             }
           }.recoverWith(_ => handleError(resp).flatMap(Sync[F].raiseError))
         }
@@ -418,13 +387,13 @@ object S3 {
         key: String,
         uploadId: String,
         parts: List[String],
-        optHeaders: Option[Headers]): F[CompleteMultipartUploadResponse] =
+        optHeaders: Headers): F[CompleteMultipartUploadResponse] =
       client.expectOr(
         Request[F](
           Method.POST,
           (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
             .withQueryParam("uploadId", uploadId),
-          headers = optHeaders.getOrElse(Headers.empty)
+          headers = optHeaders
         ).withEntity(completeMultipartUploadBody(parts))
       )(handleError)
 

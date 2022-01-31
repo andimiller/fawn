@@ -5,19 +5,7 @@ import com.lucidchart.open.xtract.XmlReader._
 import com.lucidchart.open.xtract.{__, XmlReader}
 import org.http4s.Headers
 
-/** Represents a generic response that contains the AWS Request Id and all remaining headers.
-  * @param requestId
-  *   Amazon AWS Request ID
-  * @param headers
-  *   All Response Headers
-  */
-case class GenericResponse(requestId: String, headers: Headers)
-object GenericResponse {
-  def apply(requestId: String, headers: Headers): GenericResponse =
-    new GenericResponse(requestId, headers.filter(h => h.value != requestId))
-}
-
-case class CreateBucketResponse(location: String, genericResponse: GenericResponse)
+case class CreateBucketResponse(location: String, headers: Headers)
 
 case class ListBucketsResponse(buckets: Vector[Bucket], owner: Owner)
 
@@ -47,9 +35,9 @@ object ListObjectsResponse {
   ).mapN(ListObjectsResponse.apply)
 }
 
-case class UploadFileResponse(eTag: String, genericResponse: GenericResponse)
+case class UploadFileResponse(eTag: String, headers: Headers)
 
-case class DownloadFileResponse[T](eTag: String, body: T, genericResponse: GenericResponse)
+case class DownloadFileResponse[T](eTag: String, body: T, headers: Headers)
 
 case class CopyObjectResponse(eTag: String, lastModified: String)
 
@@ -64,7 +52,7 @@ case class HeadObjectResponse(
     eTag: String,
     contentLength: Int,
     contentType: String,
-    genericResponse: GenericResponse)
+    headers: Headers)
 
 case class CreateMultipartUploadResponse(bucket: String, key: String, uploadId: String)
 
@@ -134,7 +122,7 @@ object ListPartsResponse {
     (__ \ "StorageClass").read[String]
   ).mapN(ListPartsResponse.apply)
 }
-case class UploadPartResponse(eTag: String, genericResponse: GenericResponse)
+case class UploadPartResponse(eTag: String, headers: Headers)
 
 case class CompleteMultipartUploadResponse(
     location: String,

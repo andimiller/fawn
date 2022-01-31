@@ -22,12 +22,11 @@ class S3Spec extends FlatIOSpec {
 
   val uploadId = "upload-id-example"
 
-  val requestIdExample                 = "request-id-example"
-  val genericResponse: GenericResponse = GenericResponse(
-    requestIdExample,
+  val requestIdExample         = "request-id-example"
+  val genericResponse: Headers =
     Headers(
       Header("Content-Type", "text/plain; charset=UTF-8"),
-      Header("Content-Length", 0.toString)))
+      Header("Content-Length", 0.toString))
 
   val eTagExample = "dcalknjgfrewlknocadvsnlkjsdfalnk"
 
@@ -49,7 +48,9 @@ class S3Spec extends FlatIOSpec {
       }
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
-    s3.deleteBucket(bucket).assertEquals(genericResponse)
+    s3.deleteBucket(bucket)
+      .map(_.get("x-amz-request-id".ci).get.value)
+      .assertEquals(requestIdExample)
   }
 
   val listBucketsResponseExample =
@@ -136,7 +137,7 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.deleteObject(bucket, key)
-      .map(_.requestId)
+      .map(_.get("x-amz-request-id".ci).get.value)
       .assertEquals(requestIdExample)
   }
 
@@ -203,7 +204,7 @@ class S3Spec extends FlatIOSpec {
       .orNotFound
     val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.abortMultipartUpload(bucket, key, uploadId)
-      .map(_.requestId)
+      .map(_.get("x-amz-request-id".ci).get.value)
       .assertEquals(requestIdExample)
   }
 
