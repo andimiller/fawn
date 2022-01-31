@@ -39,8 +39,9 @@ All methods described here support additional optional headers that can be inclu
 A multipart upload begins by using the `createMultipartUpload` method. This method produces the `uploadId` which is needed by other requests.  
 
 ```scala mdoc:to-string
-val resp = s3.createMultipartUpload("hello-world-bucket-example", "mp-file-example")
-val uploadid = resp.map(_.uploadId)
+s3.createMultipartUpload("hello-world-bucket-example", "mp-file-example").flatMap { response =>
+    IO { println(s"UploadID: ${response.uploadId}") }
+}
 ```
 
 If, for any reason, the multipart upload is needed to be cancelled, this can be done with the `abortMultipartUpload` method. 
@@ -55,27 +56,35 @@ s3.abortMultipartUpload(
 The `listMultipartUploads` method can be used to see ongoing uploads within a bucket. This also obtains the `uploadId` for each upload. 
 
 ```scala mdoc:to-string
-s3.listMultipartUploads("hello-world-bucket-example")
+def printMP(upload: Uploads): IO[Unit] = IO { println(s"UploadID: ${upload.uploadId}") }
+
+s3.listMultipartUploads("hello-world-bucket-example").flatMap { response =>
+    response.uploads.get.traverse(printMP _)
+}
 ```
 
 A list of parts uploaded so far in a multipart upload can be obtained using the `listParts` method. This returns each part's `ETag` which is necessary for completing the upload. 
 
 ```scala mdoc:to-string
+def printPart(part: Parts): IO[Unit] = IO { println(s"Part Etag: ${part.eTag}") }
+
 s3.listParts(
-        "hello-world-bucket-example", 
-        "mp-file-example", 
-        uploadId = "943465sdf54sdf654sd321fdf")
+    "hello-world-bucket-example",
+    "mp-file-example",
+    uploadId = "943465sdf54sdf654sd321fdf")
+    .flatMap { response => response.parts.traverse(printPart _) }
 ```
 
 To upload a part, the `uploadPart` method is to be used. This requires an `EntityEncoder` in order to encode the contents of the chunk. It also requires a part number which is necessary for reassembling the parts into the completed file. In S3, part numbers are indexed from 1 to 10,000. This also returns the `ETag` of the part, which is also necessary for completing the upload. 
 
 ```scala mdoc:to-string
 s3.uploadPart(
-        "hello-world-bucket-example", 
-        "mp-file-example",
-        1, 
-        "943465sdf54sdf654sd321fdf",
-        "content-to -be-encoded")
+    "hello-world-bucket-example",
+    "mp-file-example",
+    1,
+    "943465sdf54sdf654sd321fdf",
+    "content-to -be-encoded")
+    .flatMap { response => IO { println(s"Part ETag: ${response.eTag}") } }
 ```
 
 Once all parts are uploaded, the upload can be completed. This is done using the method `completeMultipartUpload` method. This method requires all `ETags` for each part in a list, in order of assembly.
@@ -97,6 +106,7 @@ This `Resource` includes the `sendPart` method which is used to send a file chun
 ```scala mdoc:to-string
 import org.http4s.EntityEncoder
 
-def upload[T](t: T)(implicit enc: EntityEncoder[IO, T]) =
+//For docs purposes, send a singular part t. 
+def upload[T](t: List[T])(implicit enc: EntityEncoder[IO, T]) =
     s3.startMultipartUpload("bucket", "key").use { mp => mp.sendPart(t) }
 ```
