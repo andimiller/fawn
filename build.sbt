@@ -92,10 +92,25 @@ lazy val sqs = project
       "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test
     ),
   )
+  
+lazy val s3 = project
+  .in(file("s3"))
+  .dependsOn(auth, codec)
+  .settings(baseSettings: _*)
+  .settings(
+    libraryDependencies ++= List(
+      "com.lucidchart" %% "xtract"              % "2.3.0-alpha3",
+      "org.typelevel"  %% "cats-tagless-macros" % "0.14.0",
+      "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test,
+      "org.http4s"     %% "http4s-scala-xml"    % "0.21.31",
+      "com.beachape"   %% "enumeratum"          % "1.7.0",
+      "ch.qos.logback"      % "logback-classic"     % "1.2.6"
+    ),
+  )
 
 lazy val examples = project
   .in(file("examples"))
-  .dependsOn(sqs, codecCirce, commonDecline)
+  .dependsOn(sqs, codecCirce, commonDecline, s3)
   .settings(baseSettings: _*)
   .settings(
     libraryDependencies ++= List(
@@ -109,7 +124,7 @@ lazy val examples = project
 
 lazy val docs = project
   .in(file("docs-builder"))
-  .dependsOn(sqs, codecCirce, commonDecline)
+  .dependsOn(s3, sqs, codecCirce, commonDecline)
   .enablePlugins(MdocPlugin, DocusaurusPlugin)
   .settings(baseSettings: _*)
   .settings(
@@ -125,7 +140,7 @@ lazy val docs = project
 
 val root = project
   .in(file("."))
-  .aggregate(common, commonDecline, auth, codec, codecCirce, sqs, examples, docs)
+  .aggregate(common, commonDecline, auth, codec, codecCirce, sqs, s3, examples, docs)
   .settings(
     publishArtifact := false
   )
