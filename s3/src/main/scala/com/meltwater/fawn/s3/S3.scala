@@ -106,12 +106,19 @@ object S3 {
       baseClient: Client[F],
       credentials: AWSCredentials,
       awsRegion: AWSRegion,
-      host: String): S3[F] = new S3[F] {
+      endpoint: Option[Uri] = None): S3[F] = new S3[F] {
+
+    private val region: String = awsRegion.value
+
+    //Default to amazons endpoint if none is provided
+    private val endpointHost =
+      endpoint.getOrElse(Uri.unsafeFromString(s"https://s3.$region.amazonaws.com"))
+
+    def insertBucketToUri(host: Uri, bucket: String): Uri = host.copy(authority =
+      Some(Uri.Authority(host = Uri.RegName(bucket + "." + region + "." + host.host.get))))
 
     private val client: Client[F] =
       V4Middleware[F](credentials, awsRegion, AWSService.s3).apply(baseClient)
-
-    private val region: String = awsRegion.value
 
     private def handleError(r: Response[F]): F[Throwable] =
       r.bodyText.compile.foldMonoid.map { b =>
@@ -133,7 +140,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            Uri.unsafeFromString(s"https://$bucket.$host"),
+            insertBucketToUri(endpointHost, bucket),
             headers = optHeaders
           ).withEntity(createBucketBody)
         )
@@ -152,7 +159,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            Uri.unsafeFromString(s"https://$bucket.$host"),
+            insertBucketToUri(endpointHost, bucket),
             headers = optHeaders
           )
         )
@@ -163,7 +170,7 @@ object S3 {
     override def listBuckets(): F[ListBucketsResponse] = client.expectOr(
       Request[F](
         Method.GET,
-        Uri.unsafeFromString(s"https://s3.$region.amazonaws.com")
+        endpointHost
       )
     )(handleError)
 
@@ -172,8 +179,7 @@ object S3 {
         optHeaders: Headers = Headers.empty): F[ListObjectsResponse] = client.expectOr(
       Request[F](
         Method.GET,
-        Uri
-          .unsafeFromString(s"https://$bucket.$host")
+        insertBucketToUri(endpointHost, bucket)
           .withQueryParams(
             Map(
               "list-type"    -> 2.toString.some, //sets the request to use the v2 version
@@ -193,7 +199,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            Uri.unsafeFromString(s"https://$bucket.$host") / key,
+            insertBucketToUri(endpointHost, bucket) / key,
             headers = optHeaders
           ).withEntity(t)
         )
@@ -213,7 +219,7 @@ object S3 {
         .run(
           Request[F](
             Method.GET,
-            Uri.unsafeFromString(s"https://$bucket.$host") / key,
+            insertBucketToUri(endpointHost, bucket) / key,
             headers = optHeaders
           )
         )
@@ -236,7 +242,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            Uri.unsafeFromString(s"https://$bucket.$host") / key,
+            insertBucketToUri(endpointHost, bucket) / key,
             headers = optHeaders
           )
         )
@@ -252,7 +258,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.PUT,
-          Uri.unsafeFromString(s"https://$bucket.$host") / key,
+          insertBucketToUri(endpointHost, bucket) / key,
           headers = Headers(Header("x-amz-copy-source", copySource)) ++
             optHeaders
         )
@@ -266,7 +272,7 @@ object S3 {
         .run(
           Request[F](
             Method.HEAD,
-            Uri.unsafeFromString(s"https://$bucket.$host") / key,
+            insertBucketToUri(endpointHost, bucket) / key,
             headers = optHeaders
           )
         )
@@ -293,7 +299,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.POST,
-          (Uri.unsafeFromString(s"https://$bucket.$host") / key)
+          (insertBucketToUri(endpointHost, bucket) / key)
             .withQueryParam("uploads", ""),
           headers = optHeaders
         )
@@ -308,7 +314,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            (Uri.unsafeFromString(s"https://$bucket.$host") / key)
+            (insertBucketToUri(endpointHost, bucket) / key)
               .withQueryParam("uploadId", uploadId),
             headers = optHeaders
           )
@@ -324,7 +330,7 @@ object S3 {
         Request[F](
           Method.GET,
           Uri
-            .unsafeFromString(s"https://$bucket.$host")
+            .unsafeFromString(s"https://$bucket.$endpoint")
             .withQueryParam("uploads", ""),
           headers = optHeaders
         )
@@ -338,7 +344,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.GET,
-          (Uri.unsafeFromString(s"https://$bucket.$host") / key)
+          (insertBucketToUri(endpointHost, bucket) / key)
             .withQueryParam("uploadId", uploadId),
           headers = optHeaders
         )
@@ -356,7 +362,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            (Uri.unsafeFromString(s"https://$bucket.$host") / key)
+            (insertBucketToUri(endpointHost, bucket) / key)
               .withQueryParams(
                 Map(
                   "partNumber" -> partNumber.toString.some,
@@ -392,7 +398,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.POST,
-          (Uri.unsafeFromString(s"https://$bucket.$host") / key)
+          (insertBucketToUri(endpointHost, bucket) / key)
             .withQueryParam("uploadId", uploadId),
           headers = optHeaders
         ).withEntity(completeMultipartUploadBody(parts))

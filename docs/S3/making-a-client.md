@@ -37,7 +37,7 @@ val region      = AWSRegion.`eu-west-1`
 val accountId   = 123456L
 ```
 
-We can then make a `Resource` for our `http4s` client and then map it into an `S3`. `S3` requires a hostname, this allows it to integrate with other API's such as DigitalOcean.
+We can then make a `Resource` for our `http4s` client and then map it into an `S3`.
 
 ```scala mdoc:silent
 import org.typelevel.log4cats.SelfAwareStructuredLogger
@@ -47,7 +47,7 @@ implicit def unsafeLogger[F[_]: Sync]: SelfAwareStructuredLogger[F] = Slf4jLogge
 
 val s3Resource: Resource[IO, S3[IO]] = 
   BlazeClientBuilder[IO](ExecutionContext.global).resource.map { client =>
-    S3[IO](client, credentials, region, s"s3.$region.amazonaws.com")
+    S3[IO](client, credentials, region)
   }
 ```
 

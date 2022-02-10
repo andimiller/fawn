@@ -103,7 +103,8 @@ lazy val s3 = project
       "org.typelevel"  %% "cats-tagless-macros" % "0.14.0",
       "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test,
       "org.http4s"     %% "http4s-scala-xml"    % "0.21.31",
-      "com.beachape"   %% "enumeratum"          % "1.7.0"
+      "com.beachape"   %% "enumeratum"          % "1.7.0",
+      "ch.qos.logback"      % "logback-classic"     % "1.2.6"
     ),
   )
 

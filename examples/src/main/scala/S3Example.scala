@@ -26,7 +26,7 @@ object S3Example extends IOApp {
       case Left(value)                                             => IO { println(value) }.as(ExitCode.Error)
       case Right((credentials: AWSCredentials, region: AWSRegion)) =>
         BlazeClientBuilder[IO](ExecutionContext.global).resource.use { client =>
-          val s3 = S3[IO](client, credentials, region, s"s3.$region.amazonaws.com")
+          val s3 = S3[IO](client, credentials, region)
           s3.listBuckets()
             .flatMap { r =>
               IO {

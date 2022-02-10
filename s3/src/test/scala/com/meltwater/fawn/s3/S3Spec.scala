@@ -37,7 +37,7 @@ class S3Spec extends FlatIOSpec {
           _.put(Header("Location", s"/$bucket"), Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.createBucket(bucket).map(_.location).assertEquals(s"/$bucket")
   }
 
@@ -47,7 +47,7 @@ class S3Spec extends FlatIOSpec {
         Ok("").map(_.transformHeaders(_.put(Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.deleteBucket(bucket)
       .map(_.get("x-amz-request-id".ci).get.value)
       .assertEquals(requestIdExample)
@@ -74,7 +74,7 @@ class S3Spec extends FlatIOSpec {
         Ok(listBucketsResponseExample)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listBuckets().map(_.buckets.size).assertEquals(1)
   }
 
@@ -100,7 +100,7 @@ class S3Spec extends FlatIOSpec {
         Ok(listObjectsExample)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listObjectsV2(bucket).map(_.contents.size).assertEquals(1)
   }
 
@@ -111,7 +111,7 @@ class S3Spec extends FlatIOSpec {
           _.put(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.putObject(bucket, key, body)
       .map(_.eTag)
       .assertEquals(eTagExample)
@@ -125,7 +125,7 @@ class S3Spec extends FlatIOSpec {
           _.put(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.getObject(bucket, key).map(_.body).assertEquals(body)
   }
 
@@ -135,7 +135,7 @@ class S3Spec extends FlatIOSpec {
         Ok().map(_.transformHeaders(_.put(Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.deleteObject(bucket, key)
       .map(_.get("x-amz-request-id".ci).get.value)
       .assertEquals(requestIdExample)
@@ -154,7 +154,7 @@ class S3Spec extends FlatIOSpec {
         Ok(copyObjectResponse)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.copyObject(bucket, key, key)
       .map(_.eTag)
       .assertEquals("9b2cf535f27731c974343645a3985328")
@@ -172,7 +172,7 @@ class S3Spec extends FlatIOSpec {
               Header("Content-Type", "text/plain"))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.headObject(bucket, key).map(_.eTag).assertEquals(eTagExample)
   }
 
@@ -190,7 +190,7 @@ class S3Spec extends FlatIOSpec {
         Ok(createMultipartUploadExample)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.createMultipartUpload(bucket, key)
       .map(_.uploadId)
       .assertEquals("VXBsb2FkIElEIGZvciA2aWWpbmcncyBteS1tb3ZpZS5tMnRzIHVwbG9hZA")
@@ -202,7 +202,7 @@ class S3Spec extends FlatIOSpec {
         Ok().map(_.transformHeaders(_.put(Header("x-amz-request-id", requestIdExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.abortMultipartUpload(bucket, key, uploadId)
       .map(_.get("x-amz-request-id".ci).get.value)
       .assertEquals(requestIdExample)
@@ -268,7 +268,7 @@ class S3Spec extends FlatIOSpec {
         Ok(listMultipartUploadsResponseExample)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listMultipartUploads(bucket)
       .map(_.uploads.get.size)
       .assertEquals(3)
@@ -313,7 +313,7 @@ class S3Spec extends FlatIOSpec {
         Ok(listPartsExample)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.listParts(bucket, key, uploadId)
       .map(_.parts.size)
       .assertEquals(2)
@@ -326,7 +326,7 @@ class S3Spec extends FlatIOSpec {
           _.put(Header("x-amz-request-id", requestIdExample), Header("ETag", eTagExample))))
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.uploadPart(bucket, key, 1, uploadId, body)
       .map(_.eTag)
       .assertEquals(eTagExample)
@@ -347,7 +347,7 @@ class S3Spec extends FlatIOSpec {
         Ok(completeMultipartUploadExample)
       }
       .orNotFound
-    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region, "s3.amazonaws.com")
+    val s3     = S3[IO](Client.fromHttpApp(client), credentials, region)
     s3.completeMultipartUpload(bucket, key, uploadId, List(eTagExample))
       .map(_.eTag)
       .assertEquals("3858f62230ac3c915f300c664312c11f-9")
