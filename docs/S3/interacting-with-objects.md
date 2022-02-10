@@ -21,7 +21,7 @@ val region      = AWSRegion.`eu-west-1`
 implicit def unsafeLogger[F[_]: Sync]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]  
 val s3Resource: Resource[IO, S3[IO]] =
     BlazeClientBuilder[IO](ExecutionContext.global).resource.map { client =>
-      S3[IO](client, credentials, region)
+      S3[IO](client, credentials, region, s"s3.$region.amazonaws.com")
     }
   
   val (s3, dispose) = s3Resource.allocated.unsafeRunSync()

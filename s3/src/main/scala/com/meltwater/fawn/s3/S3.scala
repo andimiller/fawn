@@ -105,7 +105,8 @@ object S3 {
   def apply[F[_]: Sync: Clock: Logger](
       baseClient: Client[F],
       credentials: AWSCredentials,
-      awsRegion: AWSRegion): S3[F] = new S3[F] {
+      awsRegion: AWSRegion,
+      host: String): S3[F] = new S3[F] {
 
     private val client: Client[F] =
       V4Middleware[F](credentials, awsRegion, AWSService.s3).apply(baseClient)
@@ -132,7 +133,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com"),
+            Uri.unsafeFromString(s"https://$bucket.$host"),
             headers = optHeaders
           ).withEntity(createBucketBody)
         )
@@ -151,7 +152,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com"),
+            Uri.unsafeFromString(s"https://$bucket.$host"),
             headers = optHeaders
           )
         )
@@ -172,7 +173,7 @@ object S3 {
       Request[F](
         Method.GET,
         Uri
-          .unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com")
+          .unsafeFromString(s"https://$bucket.$host")
           .withQueryParams(
             Map(
               "list-type"    -> 2.toString.some, //sets the request to use the v2 version
@@ -192,7 +193,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
+            Uri.unsafeFromString(s"https://$bucket.$host") / key,
             headers = optHeaders
           ).withEntity(t)
         )
@@ -212,7 +213,7 @@ object S3 {
         .run(
           Request[F](
             Method.GET,
-            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
+            Uri.unsafeFromString(s"https://$bucket.$host") / key,
             headers = optHeaders
           )
         )
@@ -235,7 +236,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
+            Uri.unsafeFromString(s"https://$bucket.$host") / key,
             headers = optHeaders
           )
         )
@@ -251,7 +252,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.PUT,
-          Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
+          Uri.unsafeFromString(s"https://$bucket.$host") / key,
           headers = Headers(Header("x-amz-copy-source", copySource)) ++
             optHeaders
         )
@@ -265,7 +266,7 @@ object S3 {
         .run(
           Request[F](
             Method.HEAD,
-            Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key,
+            Uri.unsafeFromString(s"https://$bucket.$host") / key,
             headers = optHeaders
           )
         )
@@ -292,7 +293,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.POST,
-          (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
+          (Uri.unsafeFromString(s"https://$bucket.$host") / key)
             .withQueryParam("uploads", ""),
           headers = optHeaders
         )
@@ -307,7 +308,7 @@ object S3 {
         .run(
           Request[F](
             Method.DELETE,
-            (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
+            (Uri.unsafeFromString(s"https://$bucket.$host") / key)
               .withQueryParam("uploadId", uploadId),
             headers = optHeaders
           )
@@ -323,7 +324,7 @@ object S3 {
         Request[F](
           Method.GET,
           Uri
-            .unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com")
+            .unsafeFromString(s"https://$bucket.$host")
             .withQueryParam("uploads", ""),
           headers = optHeaders
         )
@@ -337,7 +338,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.GET,
-          (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
+          (Uri.unsafeFromString(s"https://$bucket.$host") / key)
             .withQueryParam("uploadId", uploadId),
           headers = optHeaders
         )
@@ -355,7 +356,7 @@ object S3 {
         .run(
           Request[F](
             Method.PUT,
-            (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
+            (Uri.unsafeFromString(s"https://$bucket.$host") / key)
               .withQueryParams(
                 Map(
                   "partNumber" -> partNumber.toString.some,
@@ -391,7 +392,7 @@ object S3 {
       client.expectOr(
         Request[F](
           Method.POST,
-          (Uri.unsafeFromString(s"https://$bucket.s3.$region.amazonaws.com") / key)
+          (Uri.unsafeFromString(s"https://$bucket.$host") / key)
             .withQueryParam("uploadId", uploadId),
           headers = optHeaders
         ).withEntity(completeMultipartUploadBody(parts))
