@@ -114,8 +114,10 @@ object S3 {
     private val endpointHost =
       endpoint.getOrElse(Uri.unsafeFromString(s"https://s3.$region.amazonaws.com"))
 
-    def insertBucketToUri(host: Uri, bucket: String): Uri = host.copy(authority =
-      Some(Uri.Authority(host = Uri.RegName(bucket + "." + region + "." + host.host.get))))
+    def insertBucketToUri(host: Uri, bucket: String): Uri =
+      host.copy(authority = (host.authority, host.host).mapN { case (auth, baseHost) =>
+        auth.copy(host = Uri.RegName(s"$bucket.${baseHost.value}"))
+      })
 
     private val client: Client[F] =
       V4Middleware[F](credentials, awsRegion, AWSService.s3).apply(baseClient)
