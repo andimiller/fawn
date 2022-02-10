@@ -5,7 +5,7 @@ publishArtifact := false
 
 
 lazy val baseSettings = List(
-  version := "0.1",
+  version := "0.2",
   scalaVersion           := "2.13.7",
   libraryDependencies ++= List(
     "org.typelevel"  %% "log4cats-slf4j"             % "1.3.1",
@@ -92,7 +92,7 @@ lazy val sqs = project
       "org.http4s"     %% "http4s-dsl"          % "0.21.31" % Test
     ),
   )
-  
+
 lazy val s3 = project
   .in(file("s3"))
   .dependsOn(auth, codec)
