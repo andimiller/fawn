@@ -62,6 +62,12 @@ const config = {
             position: 'left',
             label: 'SQS',
           },
+          {
+            type: 'doc',
+            docId: 'S3/making-a-client',
+            position: 'left',
+            label: 'S3',
+          },
           /*{to: '/blog', label: 'Blog', position: 'left'}, */
           {
             href: 'https://github.com/meltwater/fawn',

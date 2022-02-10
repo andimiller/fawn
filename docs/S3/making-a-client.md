@@ -1,5 +1,5 @@
 ---
-side-bar-position: 1
+sidebar_position: 1
 ---
 
 # Making a Client
@@ -18,7 +18,7 @@ We will want cats-effect for this example will use `cats.effect.IO`.
 
 We'll also be using the `Blaze` client from http4s, so we'll need the builder for that.
 
-Following that, we need all of the common classes in `Fawn`, and all of the `S3` classes. 
+Following that, we need all of the common classes in `Fawn`, and all of the `S3` classes.
 
 ```scala mdoc
 import cats.effect._
@@ -29,7 +29,7 @@ import com.meltwater.fawn.s3._
 import scala.concurrent.ExecutionContext
 ```
 
-In order to create our client, we will need some extra settings, including AWS credentials. These would normally be brought in via a config file or command line parser, but for this example we will instantiate them here. 
+In order to create our client, we will need some extra settings, including AWS credentials. These would normally be brought in via a config file or command line parser, but for this example we will instantiate them here.
 
 ```scala mdoc
 val credentials = AWSCredentials("KEYID", "SECRET")
@@ -43,9 +43,9 @@ We can then make a `Resource` for our `http4s` client and then map it into an `S
 import org.typelevel.log4cats.SelfAwareStructuredLogger
 import org.typelevel.log4cats.slf4j.Slf4jLogger
 
-implicit def unsafeLogger[F[_]: Sync]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]  
+implicit def unsafeLogger[F[_]: Sync]: SelfAwareStructuredLogger[F] = Slf4jLogger.getLogger[F]
 
-val s3Resource: Resource[IO, S3[IO]] = 
+val s3Resource: Resource[IO, S3[IO]] =
   BlazeClientBuilder[IO](ExecutionContext.global).resource.map { client =>
     S3[IO](client, credentials, region)
   }
